@@ -1,4 +1,4 @@
-# RansomwareProtectionSystem
+# Ransomware Protection System
 ## About
 Ransomware is malicious code that encrypts a company's data or blocks the victim's computer, only to demand payment of a ransom to release the data held hostage. To protect companies, and especially small businesses (doctors' practices, law firms, etc.), from this threat, it would be ideal to offer an effective, easy-to-implement solution.
 
