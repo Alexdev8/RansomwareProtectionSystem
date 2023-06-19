@@ -10,7 +10,6 @@ def sauvegarde_complete(source_dir, backup_dir):
     shutil.copytree(source_dir, backup_dir)
     print(f"Sauvegarde complète effectuée : {backup_dir}")
 
-
 def sauvegarde_incrementielle(source_dir, backup_dir):
     timestamp = datetime.datetime.now().strftime("%d%m%Y%H%M")
     backup_dir = os.path.join(backup_dir, f"partial_backup{timestamp}")
