@@ -1,4 +1,4 @@
-test
+test oui oui
 
 Jeux de test : spécifier les valeurs par défaut et options pour les générateurs de données :
 

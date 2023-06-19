@@ -1,67 +1,84 @@
 import os
 import shutil
-from hashlib import sha256
 import datetime
 
 
-def sauvegarde_complete(source_dir, backup_dir):
-    timestamp = datetime.datetime.now().strftime("%d%m%Y%H%M")
+def full_backup(source_dir, backup_dir):
+    timestamp = datetime.datetime.now().strftime("%d%m%Y%H%M%S")
     backup_dir = os.path.join(backup_dir, f"full_backup{timestamp}")
     shutil.copytree(source_dir, backup_dir)
     print(f"Sauvegarde complète effectuée : {backup_dir}")
 
 
-def sauvegarde_incrementielle(source_dir, backup_dir):
-    timestamp = datetime.datetime.now().strftime("%d%m%Y%H%M")
-    backup_dir = os.path.join(backup_dir, f"partial_backup{timestamp}")
-    os.makedirs(backup_dir)
-
-    previous_backup_dir = get_latest_full_backup_dir(backup_dir)
-    if previous_backup_dir:
-        print("Vérification des fichiers modifiés...")
-        compare_and_backup_modified_files(source_dir, previous_backup_dir, backup_dir)
+def get_last_full_backup(backup_dir):
+    full_backups = [f for f in os.listdir(backup_dir) if f.startswith("full_backup")]
+    if full_backups:
+        full_backups.sort(reverse=True)
+        return os.path.join(backup_dir, full_backups[0])
     else:
-        print("Aucune sauvegarde complète précédente trouvée. Effectuez d'abord une sauvegarde complète.")
+        return None
 
-    print(f"Sauvegarde incrémentielle effectuée : {backup_dir}")
 
-def get_latest_full_backup_dir(backup_dir):
-    backup_dirs = [os.path.join(backup_dir, d) for d in os.listdir(backup_dir) if os.path.isdir(os.path.join(backup_dir, d))]
-    backup_dirs.sort(reverse=True)  # Tri décroissant des dossiers de sauvegarde
-    for backup_dir in backup_dirs:
-        if backup_dir.startswith("full_backup"):
-            return backup_dir
-    return None
+def get_last_partial_backup(backup_dir):
+    partial_backups = [f for f in os.listdir(backup_dir) if f.startswith("partial_backup")]
+    if partial_backups:
+        partial_backups.sort(reverse=True)
+        return os.path.join(backup_dir, partial_backups[0])
+    else:
+        return None
 
-def compare_and_backup_modified_files(source_dir, previous_backup_dir, current_backup_dir):
-    for root, dirs, files in os.walk(source_dir):
+
+def partial_backup(source_dir, backup_dir):
+    timestamp = datetime.datetime.now().strftime("%d%m%Y%H%M%S")
+    last_full_backup = get_last_full_backup(backup_dir)
+    last_partial_backup = get_last_partial_backup(backup_dir)
+
+    if last_full_backup is None:
+        print("Aucune sauvegarde complète précédente trouvée.")
+        return
+
+    partial_backup_dir = os.path.join(backup_dir, f"partial_backup{timestamp}")
+    os.makedirs(partial_backup_dir)
+
+    copied_files = set()
+
+    if last_partial_backup is not None:
+        for root, _, files in os.walk(last_partial_backup):
+            for file in files:
+                copied_files.add(os.path.relpath(os.path.join(root, file), last_partial_backup))
+
+    for root, _, files in os.walk(source_dir):
+        relative_path = os.path.relpath(root, source_dir)
+        destination_dir = os.path.join(partial_backup_dir, relative_path)
+        os.makedirs(destination_dir, exist_ok=True)
+
         for file in files:
-            source_file_path = os.path.join(root, file)
-            relative_file_path = os.path.relpath(source_file_path, source_dir)
-            previous_file_path = os.path.join(previous_backup_dir, relative_file_path)
-            current_file_path = os.path.join(current_backup_dir, relative_file_path)
-            if has_file_changed(source_file_path, previous_file_path):
-                shutil.copy2(source_file_path, current_file_path)
+            source_path = os.path.join(root, file)
+            destination_path = os.path.join(destination_dir, file)
 
-def has_file_changed(file1, file2):
-    hash1 = get_file_hash(file1)
-    hash2 = get_file_hash(file2)
-    return hash1 != hash2
+            source_modified_time = os.path.getmtime(source_path)
+            last_full_backup_file = os.path.join(last_full_backup, relative_path, file)
 
-def get_file_hash(file_path):
-    with open(file_path, "rb") as f:
-        file_data = f.read()
-        file_hash = sha256(file_data).hexdigest()
-        return file_hash
+            if not os.path.exists(last_full_backup_file) or os.path.getmtime(last_full_backup_file) < source_modified_time:
+                shutil.copy2(source_path, destination_path)
+                copied_files.add(os.path.relpath(source_path, source_dir))
+
+    for file in copied_files:
+        source_path = os.path.join(source_dir, file)
+        destination_path = os.path.join(partial_backup_dir, file)
+
+        if not os.path.exists(destination_path):
+            shutil.copy2(source_path, destination_path)
+
+    print(f"Sauvegarde partielle effectuée : {partial_backup_dir}")
 
 
 # Exemple d'utilisation
-
-source_dir = "/Users/christophereybaud/PycharmProjects/RansomwareProtectionSystem/DataBackupSystem/source_dir"
-backup_dir = "/Users/christophereybaud/PycharmProjects/RansomwareProtectionSystem/DataBackupSystem/backup_dir"
+source_dir = "source_dir"
+backup_dir = "backup_dir"
 
 # Sauvegarde complète
+# full_backup(source_dir, backup_dir)
 
-# Sauvegarde incrémentielle
-
-sauvegarde_incrementielle(source_dir, backup_dir)
+# Sauvegarde partielle
+partial_backup(source_dir, backup_dir)
