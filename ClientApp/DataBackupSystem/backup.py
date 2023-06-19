@@ -1,5 +1,6 @@
 import os
 import shutil
+from hashlib import sha256
 import datetime
 
 
