@@ -10,10 +10,10 @@ def is_loopback(interface):
     return False
 
 # Exemple d'utilisation
-interface_name = 'lo0'
-is_loopback_interface = is_loopback(interface_name)
+# interface_name = 'Loopback Pseudo-Interface 1'
+# is_loopback_interface = is_loopback(interface_name)
 
-if is_loopback_interface:
-    print(f"L'interface {interface_name} est une interface loopback.")
-else:
-    print(f"L'interface {interface_name} n'est pas une interface loopback.")
+# if is_loopback_interface:
+#     print(f"L'interface {interface_name} est une interface loopback.")
+# else:
+#     print(f"L'interface {interface_name} n'est pas une interface loopback.")

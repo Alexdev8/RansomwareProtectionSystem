@@ -283,14 +283,14 @@ app.get('/api/*', (req, res) => {
     res.send("Ransomware Protection System (RPS) API endpoint\nStatus: " + connection.state);
 });
 
-// app.get('/*', (req, res) => {
-//     try {
-//         res.sendFile(path.join(__dirname, '..', process.env.BUILD_PATH, 'index.html'));
-//     }
-//     catch (error) {
-//         console.log(error);
-//     }
-// });
+app.get('/*', (req, res) => {
+    try {
+        res.sendFile( "site/index.html");
+    }
+    catch (error) {
+        console.log(error);
+    }
+});
 
 app.listen(process.env.PORT || process.env.SERVER_PORT, () => {
     console.log("===============================================");
