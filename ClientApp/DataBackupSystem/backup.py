@@ -4,6 +4,15 @@ from hashlib import sha256
 import datetime
 import requests
 
+
+source_dir = "source_dir"
+backup_dir = "backup_dir"
+directory_to_send = "backup_dir/backup23062023093515"
+
+# URL du point de terminaison du serveur web
+url = 'http://localhost:8100/api/client/a1Zy8u/backup/push'
+
+
 def full_backup(source_dir, backup_dir):
     timestamp = datetime.datetime.now().strftime("%d%m%Y%H%M%S")
     backup_dir = os.path.join(backup_dir, f"backup{timestamp}")
@@ -70,42 +79,6 @@ def send_directory_files(directory, url):
     print("Répertoire envoyé avec succès !")
 
 
-
-
-source_dir = "source_dir"
-backup_dir = "backup_dir"
-directory_to_send = "backup_dir/backup23062023093515"
-
-# URL du point de terminaison du serveur web
-url = 'http://localhost:8100/api/client/a1Zy8u/backup/push'
-
 # full_backup(source_dir, backup_dir)
+# partial_backup(source_dir, backup_dir)
 send_directory_files(directory_to_send, url)
-
-
-# while True:
-#     print("\n==============================================")
-#     print("Bienvenue dans votre système de sauvegarde :)")
-#     print("==============================================")
-#     print("1) Sauvegarde complète")
-#     print("2) Sauvegarde incrémentale")
-#     print("3) Quitter")
-#     choix = input('\nQue choisissez-vous de faire ?\n')
-#     source_dir = "source_dir"
-#     backup_dir = "backup_dir"
-#     if choix.strip() == "1":
-#         # Sauvegarde complète
-#         full_backup(source_dir, backup_dir)
-#         tempo = input('Appuyez sur une touche pour continuer...')
-#     elif choix.strip() == "2":
-#         # Sauvegarde incrémentale
-#         partial_backup(source_dir, backup_dir)
-#
-#         tempo = input('Appuyez sur une touche pour continuer...')
-#     elif choix.strip() == "3":
-#         break
-#     else:
-#         print("Votre choix n'est pas valide. Tapez 1), 2) ou 3)\n")
-#         tempo = input('Appuyez sur une touche pour recommencer...')
-#         continue
-
