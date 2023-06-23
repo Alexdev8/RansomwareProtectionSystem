@@ -50,25 +50,37 @@ def partial_backup(source_dir, backup_dir):
     print(f"Sauvegarde partielle effectuée : {last_backup}")
 
 
-def sendfile(file, url):
-    with open(file, 'rb') as f:
-        response = requests.post(url, files={'files': [f]})
+def send_directory_files(directory, url):
+    # Créer une archive du répertoire
+    base_name = os.path.basename(directory)
+    archive_name = f"{base_name}.zip"
+    shutil.make_archive(base_name, 'zip', directory)
+
+    # Envoyer l'archive via sendfile
+    with open(archive_name, 'rb') as f:
+        files = {'files': (archive_name, f, 'application/zip')}
+        response = requests.post(url, files=files)
 
         # Traiter la réponse du serveur si nécessaire
         print(response.text)
-    print("Fichier envoyé !")
+
+    # Supprimer l'archive après l'envoi
+    os.remove(archive_name)
+
+    print("Répertoire envoyé avec succès !")
+
 
 
 
 source_dir = "source_dir"
 backup_dir = "backup_dir"
-file_to_send = "source_dir/test.777"
+directory_to_send = "backup_dir/backup23062023093515"
 
 # URL du point de terminaison du serveur web
 url = 'http://localhost:8100/api/client/a1Zy8u/backup/push'
 
 # full_backup(source_dir, backup_dir)
-sendfile(file_to_send, url)
+send_directory_files(directory_to_send, url)
 
 
 # while True:
