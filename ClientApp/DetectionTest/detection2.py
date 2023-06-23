@@ -266,8 +266,8 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
         anomalies = []  # Liste pour stocker les anomalies détectées
 
         # Vérifier l'extension
-        if self.verifier_extension(extensions):
-            anomalies.append(f"L'extension du fichier {file_name} figure dans la base de données de référence.")
+        if not self.verifier_extension(extensions):
+            anomalies.append(f"L'extension du fichier {file_name} ne figure pas dans la base de données de référence.")
 
         # Vérifier si le fichier peut être ouvert
         if not self.verifier_ouverture_fichier():
