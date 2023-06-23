@@ -1,0 +1,23 @@
+#return-home {
+    display: flex;
+    justify-content: space-around;
+    padding: 15px 30px;
+    background-color: #1A237E;
+    /* Dark Blue */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    font-family: 'Roboto', sans-serif;
+    color: white;
+}
+
+#return-home a {
+    font-weight: 500;
+    color: #FFFFFF;
+    /* White */
+    text-decoration: none;
+    transition: color 0.3s ease-in-out;
+}
+
+#return-home a:focus {
+    color: #B2DFDB;
+    /* Light Teal */
+}

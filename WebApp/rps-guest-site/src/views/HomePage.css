@@ -1,0 +1,303 @@
+#about-us {
+    background-color: #f2f2f2;
+    /* Light Grey */
+    color: #333;
+    /* Dark Grey */
+    padding: 20px;
+}
+
+#context {
+    background-color: #d9e4f5;
+    /* Light Blue */
+    color: #333;
+    /* Dark Grey */
+    padding: 20px;
+}
+
+#objective {
+    background-color: #f2f2f2;
+    /* Light Grey */
+    color: #333;
+    /* Dark Grey */
+    padding: 20px;
+}
+
+#rps-solution {
+    background-color: #d9e4f5;
+    /* Light Blue */
+    color: #333;
+    /* Dark Grey */
+    padding: 20px;
+}
+
+#features {
+    background-color: #f2f2f2;
+    /* Light Grey */
+    color: #333;
+    /* Dark Grey */
+    padding: 20px;
+}
+
+.features-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    justify-content: center;
+}
+
+
+.feature-item {
+    padding: 20px;
+    border: 1px solid #d9e4f5;
+    /* Light Blue */
+    border-radius: 10px;
+    background-color: white;
+    /* White */
+    color: #333;
+    /* Dark Grey */
+}
+
+#pricing {
+    background-color: #d9e4f5;
+    /* Light Blue */
+    color: #333;
+    /* Dark Grey */
+    padding: 20px;
+}
+
+#advantages {
+    background-color: #f2f2f2;
+    /* Light Grey */
+    color: #333;
+    /* Dark Grey */
+    padding: 20px;
+}
+
+#automation {
+    background-color: #d9e4f5;
+    /* Light Blue */
+    color: #333;
+    /* Dark Grey */
+    padding: 20px;
+}
+
+#download {
+    background-color: #f2f2f2;
+    /* Light Grey */
+    color: #333;
+    /* Dark Grey */
+    padding: 20px;
+}
+
+ul,
+p {
+    text-align: justify;
+    line-height: 1.5;
+    /* improves readability */
+}
+
+img {
+    height: auto;
+    width: 100%;
+    border-radius: 5px;
+    /* gives images a slight round edge */
+}
+
+.table-comparison {
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+}
+
+.table-comparison table {
+    margin: auto;
+    border-collapse: collapse;
+    /* removes double borders */
+}
+
+.table-comparison th,
+.table-comparison td {
+    border: 1px solid #d9e4f5;
+    /* Light Blue */
+    padding: 10px;
+}
+
+.download-button {
+    background-color: #3498db;
+    /* Bright Blue */
+    color: white;
+    padding: 15px 32px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 20px 0;
+    cursor: pointer;
+    border-radius: 5px;
+    /* matches the slight round edge on images */
+    transition: background-color 0.5s;
+    /* gives the button a smooth color change on hover */
+}
+
+.download-button:hover {
+    background-color: #1a5276;
+    /* Darker Blue */
+}
+
+#about-us {
+    background-color: #f2f2f2;
+    /* Light Grey */
+    color: #333;
+    /* Dark Grey */
+    padding: 20px;
+}
+
+#context {
+    background-color: #d9e4f5;
+    /* Light Blue */
+    color: #333;
+    /* Dark Grey */
+    padding: 20px;
+}
+
+#objective {
+    background-color: #f2f2f2;
+    /* Light Grey */
+    color: #333;
+    /* Dark Grey */
+    padding: 20px;
+}
+
+#rps-solution {
+    background-color: #d9e4f5;
+    /* Light Blue */
+    color: #333;
+    /* Dark Grey */
+    padding: 20px;
+}
+
+#features {
+    background-color: #f2f2f2;
+    /* Light Grey */
+    color: #333;
+    /* Dark Grey */
+    padding: 20px;
+}
+
+.features-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    justify-content: center;
+}
+
+
+.feature-item {
+    padding: 20px;
+    border: 1px solid #d9e4f5;
+    /* Light Blue */
+    border-radius: 10px;
+    background-color: white;
+    /* White */
+    color: #333;
+    /* Dark Grey */
+}
+
+#pricing {
+    background-color: #d9e4f5;
+    /* Light Blue */
+    color: #333;
+    /* Dark Grey */
+    padding: 20px;
+}
+
+#advantages {
+    background-color: #f2f2f2;
+    /* Light Grey */
+    color: #333;
+    /* Dark Grey */
+    padding: 20px;
+}
+
+#automation {
+    background-color: #d9e4f5;
+    /* Light Blue */
+    color: #333;
+    /* Dark Grey */
+    padding: 20px;
+}
+
+#download {
+    background-color: #f2f2f2;
+    /* Light Grey */
+    color: #333;
+    /* Dark Grey */
+    padding: 20px;
+}
+
+ul,
+p {
+    text-align: justify;
+    line-height: 1.5;
+    /* improves readability */
+}
+
+img {
+    height: auto;
+    width: 350px;
+    border-radius: 5px;
+    /* gives images a slight round edge */
+}
+
+.table-comparison {
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+}
+
+.table-comparison table {
+    margin: auto;
+    border-collapse: collapse;
+    /* removes double borders */
+}
+
+.table-comparison th,
+.table-comparison td {
+    border: 1px solid #d9e4f5;
+    /* Light Blue */
+    padding: 10px;
+}
+
+.download-button {
+    background-color: #3498db;
+    /* Bright Blue */
+    color: white;
+    padding: 15px 32px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 20px 0;
+    cursor: pointer;
+    border-radius: 5px;
+    /* matches the slight round edge on images */
+    transition: background-color 0.5s;
+    /* gives the button a smooth color change on hover */
+}
+
+.download-button:hover {
+    background-color: #1a5276;
+    /* Darker Blue */
+}
+
+@media only screen and (max-width: 600px) {
+    img {
+        width: 100%;
+    }
+}
+
+@media only screen and (min-width: 601px) and (max-width: 1024px) {
+    img {
+        width: 350px;
+    }
+}

@@ -1,0 +1,88 @@
+#app {
+  font-family: 'Arial', sans-serif;
+  background-color: #F5F5F5;
+  /* Whitish Grey */
+  color: #333;
+  /* Dark Grey */
+  text-align: center;
+}
+
+.header-style {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  background-color: #1A237E;
+  /* Dark Blue */
+}
+
+.logo-container,
+.text-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.logo {
+  height: 100px;
+  width: 100px;
+}
+
+.title,
+.slogan {
+  color: white;
+}
+
+footer {
+  background: #1A237E;
+  /* Dark Blue */
+  padding: 20px;
+  color: white;
+  text-align: center;
+}
+
+.footerbar ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  text-align: center;
+  position: relative;
+}
+
+.footerbar li {
+  display: inline-block;
+  position: relative;
+}
+
+.footerbar li a {
+  color: white;
+  text-decoration: none;
+  margin: 0 15px;
+}
+
+.footerbar li a:hover {
+  text-decoration: underline;
+}
+
+@media only screen and (max-width: 600px) {
+  .logo {
+    height: 80px;
+    width: 80px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}

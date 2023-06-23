@@ -1,0 +1,44 @@
+[
+    {
+        "id": 1,
+        "firstName": "Alexis",
+        "lastName": "BENSOUSSAN",
+        "email": "alexis.bensoussan@efrei.net",
+        "description": "Spécialiste de la partie serveur."
+    },
+    {
+        "id": 2,
+        "firstName": "Yaël",
+        "lastName": "BERTHELOT",
+        "email": "yael.berthelot@example.com",
+        "description": "Spécialiste de la partie blockage."
+    },
+    {
+        "id": 3,
+        "firstName": "Alex",
+        "lastName": "COLIN-MICHEL",
+        "email": "alex.colin-michel@efrei.net",
+        "description": "Spécialiste de la partie alerte."
+    },
+    {
+        "id": 4,
+        "firstName": "Idriss",
+        "lastName": "OUGUERGOUZ",
+        "email": "idriss.ouguergouz@efrei.net",
+        "description": "Spécialiste la partie alerte."
+    },
+    {
+        "id": 5,
+        "firstName": "Christophe",
+        "lastName": "REYBAUD",
+        "email": "christophe.reybaud@efrei.net",
+        "description": "Spécialiste de la partie sauvegarde (back up)."
+    },
+    {
+        "id": 6,
+        "firstName": "Michel",
+        "lastName": "WU",
+        "email": "michel.wu@efrei.net",
+        "description": "Spécialiste de la partie détection."
+    }
+]
