@@ -2,7 +2,7 @@ import os
 import shutil
 from hashlib import sha256
 import datetime
-
+import requests
 
 def full_backup(source_dir, backup_dir):
     timestamp = datetime.datetime.now().strftime("%d%m%Y%H%M%S")
@@ -50,30 +50,54 @@ def partial_backup(source_dir, backup_dir):
     print(f"Sauvegarde partielle effectuée : {last_backup}")
 
 
+def sendfile(source_dir, url):
+    for repertoire, sous_repertoires, files in os.walk(source_dir):
+        for file in files:
+            file_path = os.path.join(repertoire, file)
+
+            # Envoyer chaque fichier au serveur web
+            with open(file_path, 'rb') as f:
+                response = requests.post(url, files={'file': f})
+
+                # Traiter la réponse du serveur si nécessaire
+                print(response.text)
+    print("Fichier envoyé !")
 
 
-while True:
-    print("\n==============================================")
-    print("Bienvenue dans votre système de sauvegarde :)")
-    print("==============================================")
-    print("1) Sauvegarde complète")
-    print("2) Sauvegarde incrémentale")
-    print("3) Quitter")
-    choix = input('\nQue choisissez-vous de faire ?\n')
-    source_dir = "source_dir"
-    backup_dir = "backup_dir"
-    if choix.strip() == "1":
-        # Sauvegarde complète
-        full_backup(source_dir, backup_dir)
-        tempo = input('Appuyez sur une touche pour continuer...')
-    elif choix.strip() == "2":
-        # Sauvegarde incrémentale
-        partial_backup(source_dir, backup_dir)
 
-        tempo = input('Appuyez sur une touche pour continuer...')
-    elif choix.strip() == "3":
-        break
-    else:
-        print("Votre choix n'est pas valide. Tapez 1), 2) ou 3)\n")
-        tempo = input('Appuyez sur une touche pour recommencer...')
-        continue
+source_dir = "source_dir"
+backup_dir = "backup_dir"
+file_to_send = "backup_dir/backup22062023155841"
+
+# URL du point de terminaison du serveur web
+url = 'http://172.20.10.2:8100/api/client/a1Zy8u/backup/push'
+
+sendfile(file_to_send, url)
+
+
+# while True:
+#     print("\n==============================================")
+#     print("Bienvenue dans votre système de sauvegarde :)")
+#     print("==============================================")
+#     print("1) Sauvegarde complète")
+#     print("2) Sauvegarde incrémentale")
+#     print("3) Quitter")
+#     choix = input('\nQue choisissez-vous de faire ?\n')
+#     source_dir = "source_dir"
+#     backup_dir = "backup_dir"
+#     if choix.strip() == "1":
+#         # Sauvegarde complète
+#         full_backup(source_dir, backup_dir)
+#         tempo = input('Appuyez sur une touche pour continuer...')
+#     elif choix.strip() == "2":
+#         # Sauvegarde incrémentale
+#         partial_backup(source_dir, backup_dir)
+#
+#         tempo = input('Appuyez sur une touche pour continuer...')
+#     elif choix.strip() == "3":
+#         break
+#     else:
+#         print("Votre choix n'est pas valide. Tapez 1), 2) ou 3)\n")
+#         tempo = input('Appuyez sur une touche pour recommencer...')
+#         continue
+
