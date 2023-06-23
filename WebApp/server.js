@@ -2,10 +2,12 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const path = require('path');
 let mysql = require('mysql');
+let multer = require('multer');
 let moment = require('moment');
 
 require('dotenv').config({path: ".env"});
 const db_config = require('./db_config');
+const fs = require("fs");
 const app = express();
 
 let connection = mysql.createConnection(db_config);
@@ -28,6 +30,20 @@ function refreshConnection() {
         });
     }
 }
+
+// Configuration de Multer pour gérer les fichiers reçus
+const upload = multer({ storage:
+    multer.diskStorage({
+        destination: function (req, file, cb) {
+            // Spécifiez le dossier de destination pour les fichiers reçus
+            cb(null, process.env.CLIENT_DATA_PATH);
+        },
+        filename: function (req, file, cb) {
+            // Générez un nom de fichier unique
+            cb(null, Date.now() + '-' + file.originalname);
+        }
+    })
+});
 
 function formatDateUser(date) {
     let tdate = moment(date);
@@ -68,8 +84,8 @@ function generateRef(use) {
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
 
-//Where to serve static content
-// app.use(express.static(path.join(__dirname, "..", process.env.BUILD_PATH)));
+// Where to serve static content
+app.use(express.static(path.join(__dirname, "site/build")));
 
 // app.get('/api/tickets/:id', (req, res) => {
 //     //get ticket information by ref
@@ -117,48 +133,67 @@ app.use(bodyParser.urlencoded({extended: true}));
 //         }
 //     });
 // });
-//
-// app.post('/api/tickets', (req, res) => {
-//     //add a json type ticket object to the database
-//     let ticket = req.body;
-//     let accountID = null;
-//     const sql="INSERT INTO Tickets (`ticketRef`, `ticketValidityStartDate`, `ticketValidityEndDate`, `ticketType`, `visitorAge`, `visitorFirstName`, `visitorLastName`, `accountID`, `email`, `price`)" +
-//         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-//
-//     console.log(ticket);
-//     refreshConnection();
-//     if (ticket.connected) {
-//         connection.query("SELECT `accountID` FROM `Accounts` WHERE email= ?", [ticket.email],(err, results, fields) => {
-//             if (!err) {
-//                 if (results.length !== 0) {
-//                     accountID = results[0].accountID;
-//                 }
-//                 addTickets();
-//             }
-//             else {
-//                 res.send('error during query: ' + err.message);
-//                 return console.error('error during query: ' + err.message);
-//             }
-//         });
-//     } else {
-//         addTickets();
-//     }
-//
-//     function addTickets() {
-//         const ref = generateRef();
-//         connection.query(sql, [ref, formatDateServer(ticket.ticketStartDate), formatDateServer(ticket.ticketEndDate), ticket.ticketType, ticket.visitorAge, ticket.visitorFirstName, ticket.visitorLastName, accountID, ticket.email, ticket.price],(err, results, fields) => {
-//             if (!err) {
-//                 res.send(ref);
-//                 console.log('Result sent');
-//             }
-//             else {
-//                 res.send('error during query: ' + err.message);
-//                 return console.error('error during query: ' + err.message);
-//             }
-//         });
-//     }
-// });
-//
+
+app.post('/api/client/:id/backup/push', upload.array('files'),(req, res) => {
+    //backup des données dans la database
+
+    console.log("oui");
+    if (!req.files || req.files.length === 0) {
+        return res.status(400).send("Aucun fichier n'a été reçu.");
+    }
+
+    // Réponse
+    let clientID = req.params.id;
+    let files = req.files;
+    console.log(files);
+    console.log(clientID);
+
+    // Vérifiez si le fichier est un fichier compressé (par exemple, ZIP)
+    for (const file of files) {
+        if (file.mimetype !== 'application/zip') {
+            fs.unlinkSync(file.path);
+            return res.status(400).send('Les dossiers doivent être compressés (ZIP)');
+        }
+    }
+
+    // refreshConnection();
+    // if (ticket.connected) {
+    //     connection.query("SELECT `accountID` FROM `Accounts` WHERE email= ?", [ticket.email],(err, results, fields) => {
+    //         if (!err) {
+    //             if (results.length !== 0) {
+    //                 accountID = results[0].accountID;
+    //             }
+    //             addTickets();
+    //         }
+    //         else {
+    //             res.send('error during query: ' + err.message);
+    //             return console.error('error during query: ' + err.message);
+    //         }
+    //     });
+    // } else {
+    //     addTickets();
+    // }
+
+    function addTickets() {
+        const ref = generateRef();
+        connection.query(sql, [ref, formatDateServer(ticket.ticketStartDate), formatDateServer(ticket.ticketEndDate), ticket.ticketType, ticket.visitorAge, ticket.visitorFirstName, ticket.visitorLastName, accountID, ticket.email, ticket.price],(err, results, fields) => {
+            if (!err) {
+                res.send(ref);
+                console.log('Result sent');
+            }
+            else {
+                res.send('error during query: ' + err.message);
+                return console.error('error during query: ' + err.message);
+            }
+        });
+    }
+});
+
+app.get('test', (req, res) => {
+    res.send("Ca marche mon boeuf");
+});
+
+
 // app.get('/api/account', (req, res) => {
 //     //get account information by email
 //
@@ -285,7 +320,7 @@ app.get('/api/*', (req, res) => {
 
 app.get('/*', (req, res) => {
     try {
-        res.sendFile( "site/index.html");
+        res.sendFile(path.join(__dirname, "site/build/index.html"));
     }
     catch (error) {
         console.log(error);

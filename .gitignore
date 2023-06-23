@@ -11,4 +11,7 @@ RansomwareProtectionSystem.iml
 /ClientApp/DataBackupSystem/backup_dir/
 /WebApp/node_modules/
 /WebApp/package-lock.json
+/WebApp/site/node_modules/
+/WebApp/site/package-lock.json
+/WebApp/site/build/
 /WebApp/.env

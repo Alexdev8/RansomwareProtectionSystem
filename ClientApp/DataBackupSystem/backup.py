@@ -50,28 +50,24 @@ def partial_backup(source_dir, backup_dir):
     print(f"Sauvegarde partielle effectuée : {last_backup}")
 
 
-def sendfile(source_dir, url):
-    for repertoire, sous_repertoires, files in os.walk(source_dir):
-        for file in files:
-            file_path = os.path.join(repertoire, file)
+def sendfile(file, url):
+    with open(file, 'rb') as f:
+        response = requests.post(url, files={'files': [f]})
 
-            # Envoyer chaque fichier au serveur web
-            with open(file_path, 'rb') as f:
-                response = requests.post(url, files={'file': f})
-
-                # Traiter la réponse du serveur si nécessaire
-                print(response.text)
+        # Traiter la réponse du serveur si nécessaire
+        print(response.text)
     print("Fichier envoyé !")
 
 
 
 source_dir = "source_dir"
 backup_dir = "backup_dir"
-file_to_send = "backup_dir/backup22062023155841"
+file_to_send = "source_dir/test.777"
 
 # URL du point de terminaison du serveur web
-url = 'http://172.20.10.2:8100/api/client/a1Zy8u/backup/push'
+url = 'http://localhost:8100/api/client/a1Zy8u/backup/push'
 
+# full_backup(source_dir, backup_dir)
 sendfile(file_to_send, url)
 
 
