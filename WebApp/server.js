@@ -31,16 +31,32 @@ function refreshConnection() {
     }
 }
 
+const checkDestinationFolder = (req, res, next) => {
+    // Vérifier si le dossier de destination existe
+    let destination = path.join(process.env.CLIENT_DATA_PATH, req.params.clientId);
+
+    if (!fs.existsSync(destination)) {
+        return res.status(400).send("Il semble que vous n'êtes pas client chez nous");
+    }
+    else if (!fs.existsSync(path.join(destination, req.query.machineID))) {
+        fs.mkdirSync(path.join(destination, req.query.machineID));
+    }
+
+    // Le dossier de destination existe, continuer le traitement des fichiers
+    next();
+};
+
 // Configuration de Multer pour gérer les fichiers reçus
 const upload = multer({ storage:
     multer.diskStorage({
         destination: function (req, file, cb) {
             // Spécifiez le dossier de destination pour les fichiers reçus
-            cb(null, process.env.CLIENT_DATA_PATH);
+
+            cb(null, path.join(process.env.CLIENT_DATA_PATH, req.params.clientId, req.query.machineID));
         },
         filename: function (req, file, cb) {
             // Générez un nom de fichier unique
-            cb(null, Date.now() + '-' + file.originalname);
+            cb(null, file.originalname);
         }
     })
 });
@@ -134,19 +150,17 @@ app.use(express.static(path.join(__dirname, "site/build")));
 //     });
 // });
 
-app.post('/api/client/:id/backup/push', upload.array('files'),(req, res) => {
+app.post('/api/client/:clientId/backup/push', checkDestinationFolder, upload.array('files'), (req, res) => {
     //backup des données dans la database
 
-    console.log("oui");
     if (!req.files || req.files.length === 0) {
         return res.status(400).send("Aucun fichier n'a été reçu.");
     }
 
     // Réponse
-    let clientID = req.params.id;
+    let clientID = req.params.clientId;
+    let machineID = req.query.machineID
     let files = req.files;
-    console.log(files);
-    console.log(clientID);
 
     // Vérifiez si le fichier est un fichier compressé (par exemple, ZIP)
     for (const file of files) {
@@ -155,6 +169,9 @@ app.post('/api/client/:id/backup/push', upload.array('files'),(req, res) => {
             return res.status(400).send('Les dossiers doivent être compressés (ZIP)');
         }
     }
+
+    res.send("Backup stored successfully");
+    console.log('['+ clientID + ' - ' + machineID + ']' + " Backup effectué avec succès !")
 
     // refreshConnection();
     // if (ticket.connected) {

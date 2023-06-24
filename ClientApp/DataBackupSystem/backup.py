@@ -3,15 +3,16 @@ import shutil
 from hashlib import sha256
 import datetime
 import requests
-
+import urllib3.util
+from dotenv import load_dotenv
+from urllib.parse import urljoin
+import ClientApp.load_vars as vars
 
 source_dir = "source_dir"
 backup_dir = "backup_dir"
-directory_to_send = "backup_dir/backup23062023093515"
+directory_to_send = "backup_dir/backup24062023162042"
 
-# URL du point de terminaison du serveur web
-url = 'http://localhost:8100/api/client/a1Zy8u/backup/push'
-
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
 
 def full_backup(source_dir, backup_dir):
     timestamp = datetime.datetime.now().strftime("%d%m%Y%H%M%S")
@@ -68,17 +69,18 @@ def send_directory_files(directory, url):
     # Envoyer l'archive via sendfile
     with open(archive_name, 'rb') as f:
         files = {'files': (archive_name, f, 'application/zip')}
-        response = requests.post(url, files=files)
+        response = requests.post(url, params={"machineID": vars.get('VARS', 'MACHINE_ID')}, files=files)
 
         # Traiter la réponse du serveur si nécessaire
-        print(response.text)
+        if response.status_code==200:
+            print("Répertoire envoyé avec succès !")
+        else:
+            print("Une erreur est survenue lors de l'envoi !")
+            print("Raison : " + response.text)
 
     # Supprimer l'archive après l'envoi
     os.remove(archive_name)
 
-    print("Répertoire envoyé avec succès !")
-
-
 # full_backup(source_dir, backup_dir)
 # partial_backup(source_dir, backup_dir)
-send_directory_files(directory_to_send, url)
+send_directory_files(directory_to_send, os.environ.get("SERVER_ADDRESS") + '/' + vars.get('VARS', 'CLIENT_ID') + '/backup/push')

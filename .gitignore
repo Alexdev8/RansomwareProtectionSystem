@@ -8,7 +8,9 @@
 /dataSources/
 /dataSources.local.xml
 RansomwareProtectionSystem.iml
+/ClientApp/.env
 /ClientApp/DataBackupSystem/backup_dir/
+/WebApp/ClientData/
 /WebApp/node_modules/
 /WebApp/package-lock.json
 /WebApp/site/node_modules/
