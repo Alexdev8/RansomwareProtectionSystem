@@ -153,14 +153,21 @@ app.use(express.static(path.join(__dirname, "site/build")));
 app.post('/api/client/:clientId/backup/push', checkDestinationFolder, upload.array('files'), (req, res) => {
     //backup des données dans la database
 
+    const sql="INSERT INTO `Backup` (`machineID`, `fileName`, `backupDate`, `backupSize`) " +
+        "VALUES (?, ?, ?, ?)";
+
     if (!req.files || req.files.length === 0) {
         return res.status(400).send("Aucun fichier n'a été reçu.");
     }
 
     // Réponse
     let clientID = req.params.clientId;
-    let machineID = req.query.machineID
+    let machineID = req.query.machineID;
+    let backupDate = req.query.date;
     let files = req.files;
+    console.log(machineID);
+    console.log(backupDate);
+    console.log(files);
 
     // Vérifiez si le fichier est un fichier compressé (par exemple, ZIP)
     for (const file of files) {
@@ -170,40 +177,23 @@ app.post('/api/client/:clientId/backup/push', checkDestinationFolder, upload.arr
         }
     }
 
-    res.send("Backup stored successfully");
-    console.log('['+ clientID + ' - ' + machineID + ']' + " Backup effectué avec succès !")
-
-    // refreshConnection();
-    // if (ticket.connected) {
-    //     connection.query("SELECT `accountID` FROM `Accounts` WHERE email= ?", [ticket.email],(err, results, fields) => {
-    //         if (!err) {
-    //             if (results.length !== 0) {
-    //                 accountID = results[0].accountID;
-    //             }
-    //             addTickets();
-    //         }
-    //         else {
-    //             res.send('error during query: ' + err.message);
-    //             return console.error('error during query: ' + err.message);
-    //         }
-    //     });
-    // } else {
-    //     addTickets();
-    // }
-
-    function addTickets() {
-        const ref = generateRef();
-        connection.query(sql, [ref, formatDateServer(ticket.ticketStartDate), formatDateServer(ticket.ticketEndDate), ticket.ticketType, ticket.visitorAge, ticket.visitorFirstName, ticket.visitorLastName, accountID, ticket.email, ticket.price],(err, results, fields) => {
-            if (!err) {
-                res.send(ref);
-                console.log('Result sent');
+    refreshConnection();
+    connection.query(sql, [machineID, files[0].filename, backupDate, files[0].size], (err, results, fields) => {
+        if (!err) {
+            res.send("Backup stored successfully");
+            return console.log('['+ clientID + ' - ' + machineID + ']' + " Backup effectué avec succès !");
+        }
+        else {
+            fs.unlinkSync(files[0].path);
+            if (err.code === "ER_NO_REFERENCED_ROW_2") {
+                res.status(400).send("Cette machine n'est pas enregistrée pour ce client");
             }
             else {
-                res.send('error during query: ' + err.message);
+                res.status(400).send('error during query: ' + err.message);
                 return console.error('error during query: ' + err.message);
             }
-        });
-    }
+        }
+    });
 });
 
 app.get('test', (req, res) => {
