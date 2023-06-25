@@ -1,16 +1,19 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const path = require('path');
+const fs = require("fs");
+const crypto = require("crypto");
 let mysql = require('mysql');
 let multer = require('multer');
-let moment = require('moment');
 
+let moment = require('moment');
 require('dotenv').config({path: ".env"});
 const db_config = require('./db_config');
-const fs = require("fs");
+
 const app = express();
 
 let connection = mysql.createConnection(db_config);
+let machineID;
 
 connection.connect((err) => {
     console.log('Connection done');
@@ -31,6 +34,19 @@ function refreshConnection() {
     }
 }
 
+function getMachineID(req, res, next) {
+    let sql = "SELECT `machineID` FROM `Machine` WHERE `machineAddress`= ?";
+    connection.query(sql, [req.query.machineAddress], (err, results, fields) => {
+        if (!err) {
+            machineID = results[0].machineID.toString();
+            next();
+        }
+        else {
+            !res.status(400).send("Cette machine n'est pas enregistrée pour ce client");
+        }
+    });
+}
+
 const checkDestinationFolder = (req, res, next) => {
     // Vérifier si le dossier de destination existe
     let destination = path.join(process.env.CLIENT_DATA_PATH, req.params.clientId);
@@ -38,10 +54,16 @@ const checkDestinationFolder = (req, res, next) => {
     if (!fs.existsSync(destination)) {
         return res.status(400).send("Il semble que vous n'êtes pas client chez nous");
     }
-    else if (!fs.existsSync(path.join(destination, req.query.machineID))) {
-        fs.mkdirSync(path.join(destination, req.query.machineID));
+    else {
+        if (machineID) {
+            if (!fs.existsSync(path.join(destination, machineID))) {
+                fs.mkdirSync(path.join(destination, machineID));
+            }
+        }
+        else {
+            return;
+        }
     }
-
     // Le dossier de destination existe, continuer le traitement des fichiers
     next();
 };
@@ -51,8 +73,7 @@ const upload = multer({ storage:
     multer.diskStorage({
         destination: function (req, file, cb) {
             // Spécifiez le dossier de destination pour les fichiers reçus
-
-            cb(null, path.join(process.env.CLIENT_DATA_PATH, req.params.clientId, req.query.machineID));
+            cb(null, path.join(process.env.CLIENT_DATA_PATH, req.params.clientId, machineID));
         },
         filename: function (req, file, cb) {
             // Générez un nom de fichier unique
@@ -64,17 +85,6 @@ const upload = multer({ storage:
 function formatDateUser(date) {
     let tdate = moment(date);
     return tdate.format("DD/MM/YYYY");
-}
-
-function formatDateServer(date) {
-    if (date !== null) {
-        if (/^[0-9]{2}\/[0-9]{2}\/[0-9]{4}$/.test(date)) {
-            const [day, month, year] = date.split("/");
-            return year + "-" + month + "-" + day;
-        }
-        return date.substring(0, 10);
-    }
-    return null;
 }
 
 function formatString(string) {
@@ -94,6 +104,25 @@ function generateRef(use) {
     }
     //TODO tester que la ref n'existe pas déjà
     return result;
+}
+
+function generateSecureKey() {
+    const length = 40; // Longueur de la clé en nombre de caractère
+
+    // Générer des octets aléatoires sécurisés
+    const buffer = crypto.randomBytes(30);
+
+    // Convertir les octets en une chaîne encodée en base64
+    let base64String = buffer.toString('base64');
+
+    // Supprimer les caractères spéciaux et les signes de ponctuation de la clé
+    base64String = base64String
+        .replace(/\+/g, '')
+        .replace(/\//g, '')
+        .replace(/=/g, '');
+
+    // Tronquer la clé pour obtenir exactement 40 caractères
+    return base64String.substring(0, length);
 }
 
 //parses request body and populates request.body
@@ -150,11 +179,11 @@ app.use(express.static(path.join(__dirname, "site/build")));
 //     });
 // });
 
-app.post('/api/client/:clientId/backup/push', checkDestinationFolder, upload.array('files'), (req, res) => {
+app.post('/api/client/:clientId/backup/push', getMachineID, checkDestinationFolder, upload.array('files'), (req, res) => {
     //backup des données dans la database
 
     const sql="INSERT INTO `Backup` (`machineID`, `fileName`, `backupDate`, `backupSize`) " +
-        "VALUES (?, ?, ?, ?)";
+        "VALUES ((SELECT machineID FROM `Machine` WHERE `machineAddress`= ?), ?, ?, ?)";
 
     if (!req.files || req.files.length === 0) {
         return res.status(400).send("Aucun fichier n'a été reçu.");
@@ -162,12 +191,9 @@ app.post('/api/client/:clientId/backup/push', checkDestinationFolder, upload.arr
 
     // Réponse
     let clientID = req.params.clientId;
-    let machineID = req.query.machineID;
+    let machineAddress = req.query.machineAddress;
     let backupDate = req.query.date;
     let files = req.files;
-    console.log(machineID);
-    console.log(backupDate);
-    console.log(files);
 
     // Vérifiez si le fichier est un fichier compressé (par exemple, ZIP)
     for (const file of files) {
@@ -178,10 +204,10 @@ app.post('/api/client/:clientId/backup/push', checkDestinationFolder, upload.arr
     }
 
     refreshConnection();
-    connection.query(sql, [machineID, files[0].filename, backupDate, files[0].size], (err, results, fields) => {
+    connection.query(sql, [machineAddress, files[0].filename, backupDate, files[0].size], (err, results, fields) => {
         if (!err) {
             res.send("Backup stored successfully");
-            return console.log('['+ clientID + ' - ' + machineID + ']' + " Backup effectué avec succès !");
+            return console.log('['+ clientID + ' - ' + machineAddress + ']' + " Backup effectué avec succès !");
         }
         else {
             fs.unlinkSync(files[0].path);
@@ -193,6 +219,38 @@ app.post('/api/client/:clientId/backup/push', checkDestinationFolder, upload.arr
                 return console.error('error during query: ' + err.message);
             }
         }
+    });
+});
+
+app.post('/api/client/:clientId/machine/register', (req, res) => {
+    //add a json type account object to the database
+
+    let account = req.body;
+    let cypheredPassword = "";
+
+    const sql="INSERT INTO `Accounts`(`firstName`, `lastName`, `birthDate`, `email`, `password`, `phoneNumber`, `newsLetterSubscription`) " +
+        "VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+    refreshConnection();
+    bcrypt.hash(account.password, 10, function(err, hash) {
+        if (!err) {
+            cypheredPassword = hash;
+        }
+        else {
+            cypheredPassword = account.password;
+        }
+        connection.query(sql, [formatString(account.firstName), formatString(account.lastName), formatDateServer(account.birthDate), formatString(account.email), cypheredPassword, account.phoneNumber, account.newsLetter],(err, results, fields) => {
+            if (!err) {
+                res.statusCode = 201;
+                res.send(results);
+                console.log('Result sent');
+            }
+            else {
+                res.statusCode = 409;
+                res.send(err.code);
+                return console.error('error during query: ' + err.code);
+            }
+        });
     });
 });
 

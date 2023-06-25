@@ -3,9 +3,9 @@ import shutil
 from hashlib import sha256
 import datetime
 import requests
-import urllib3.util
+import re
+import uuid
 from dotenv import load_dotenv
-from urllib.parse import urljoin
 import ClientApp.load_vars as vars
 
 source_dir = "source_dir"
@@ -69,7 +69,7 @@ def send_directory_files(directory, url):
     # Envoyer l'archive via sendfile
     with open(archive_name, 'rb') as f:
         files = {'files': (archive_name, f, 'application/zip')}
-        response = requests.post(url, params={"machineID": vars.get('VARS', 'MACHINE_ID'), "date": datetime.datetime.now()}, files=files)
+        response = requests.post(url, params={"machineAddress":':'.join(re.findall('..', '%012x' % uuid.getnode())), "date": datetime.datetime.now()}, files=files)
 
         # Traiter la réponse du serveur si nécessaire
         if response.status_code==200:
