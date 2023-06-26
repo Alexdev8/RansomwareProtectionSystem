@@ -4,7 +4,7 @@ import json
 import requests
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from load_vars import get, get_keys
+from ClientApp.load_vars import get, get_keys
 from dotenv import load_dotenv 
 from hashlib import sha256
 from time import sleep, time

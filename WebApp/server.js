@@ -10,10 +10,10 @@ let moment = require('moment');
 require('dotenv').config({path: ".env"});
 const db_config = require('./db_config');
 
-const app = express();
+const MAX_BACKUPS = 3;
 
+const app = express();
 let connection = mysql.createConnection(db_config);
-let machineID;
 
 connection.connect((err) => {
     console.log('Connection done');
@@ -38,7 +38,7 @@ function getMachineID(req, res, next) {
     let sql = "SELECT `machineID` FROM `Machine` WHERE `machineAddress`= ?";
     connection.query(sql, [req.query.machineAddress], (err, results, fields) => {
         if (!err) {
-            machineID = results[0].machineID.toString();
+            req.machineID = results[0].machineID.toString();
             next();
         }
         else {
@@ -47,7 +47,36 @@ function getMachineID(req, res, next) {
     });
 }
 
-const checkDestinationFolder = (req, res, next) => {
+function checkToken(req, res, next) {
+    let token = req.headers.authorization; // Récupérer le token depuis l'en-tête
+    if (token && token.startsWith("Bearer ")) {
+        // Extraire le token en supprimant le préfixe "Bearer "
+        token = token.substring(7);
+        connection.query(
+            "SELECT * FROM `Machine` WHERE token=?",
+            [token],
+            (err, results) => {
+                if (err) {
+                    console.error("Erreur lors de la vérification du token :", err);
+                    return res.sendStatus(500);
+                }
+
+                if (results.length === 0) {
+                    // Token invalide ou non trouvé dans la base de données
+                    return res.sendStatus(401); // Unauthorized
+                }
+
+                // Token valide, passer à l'étape suivante
+                next();
+            }
+        );
+    }
+    else {
+        return res.sendStatus(401);
+    }
+}
+
+function checkDestinationFolder(req, res, next){
     // Vérifier si le dossier de destination existe
     let destination = path.join(process.env.CLIENT_DATA_PATH, req.params.clientId);
 
@@ -55,9 +84,9 @@ const checkDestinationFolder = (req, res, next) => {
         return res.status(400).send("Il semble que vous n'êtes pas client chez nous");
     }
     else {
-        if (machineID) {
-            if (!fs.existsSync(path.join(destination, machineID))) {
-                fs.mkdirSync(path.join(destination, machineID));
+        if (req.machineID) {
+            if (!fs.existsSync(path.join(destination, req.machineID))) {
+                fs.mkdirSync(path.join(destination, req.machineID));
             }
         }
         else {
@@ -66,14 +95,14 @@ const checkDestinationFolder = (req, res, next) => {
     }
     // Le dossier de destination existe, continuer le traitement des fichiers
     next();
-};
+}
 
 // Configuration de Multer pour gérer les fichiers reçus
 const upload = multer({ storage:
     multer.diskStorage({
         destination: function (req, file, cb) {
             // Spécifiez le dossier de destination pour les fichiers reçus
-            cb(null, path.join(process.env.CLIENT_DATA_PATH, req.params.clientId, machineID));
+            cb(null, path.join(process.env.CLIENT_DATA_PATH, req.params.clientId, req.machineID));
         },
         filename: function (req, file, cb) {
             // Générez un nom de fichier unique
@@ -81,6 +110,40 @@ const upload = multer({ storage:
         }
     })
 });
+
+function clearOldBackup(req, res, next) {
+    let storage_folder = path.join(process.env.CLIENT_DATA_PATH, req.params.clientId, req.machineID);
+    console.log(storage_folder);
+    // Vérifier le nombre de sauvegardes existantes
+    fs.readdir(storage_folder, (err, files) => {
+        if (err) {
+            console.error('Erreur lors de la lecture du dossier de sauvegardes :', err);
+            return res.status(500).json({ message: 'Erreur lors de la gestion des sauvegardes.' });
+        }
+
+        // Vérifier si le nombre de sauvegardes atteint le maximum
+        if (files.length > MAX_BACKUPS) {
+            // Trier les fichiers par date de modification (plus ancien au plus récent)
+            const sortedFiles = files.sort((a, b) => {
+                return a.localeCompare(b);
+            });
+
+            // Supprimer la plus ancienne sauvegarde
+            const oldestBackup = sortedFiles[0];
+            const pathToOldestBackup = path.join(storage_folder, oldestBackup);
+            fs.unlink(pathToOldestBackup, (err) => {
+                if (err) {
+                    console.error('Erreur lors de la suppression de la plus ancienne sauvegarde :', err);
+                } else {
+                    console.log('La plus ancienne sauvegarde a été supprimée avec succès.');
+                }
+            });
+        }
+
+        // Passer à l'étape suivante (enregistrement de la nouvelle sauvegarde)
+        next();
+    });
+}
 
 function formatDateUser(date) {
     let tdate = moment(date);
@@ -179,7 +242,7 @@ app.use(express.static(path.join(__dirname, "site/build")));
 //     });
 // });
 
-app.post('/api/client/:clientId/backup/push', getMachineID, checkDestinationFolder, upload.array('files'), (req, res) => {
+app.post('/api/client/:clientId/backup/push', getMachineID, checkToken, checkDestinationFolder, upload.array('files'), clearOldBackup, (req, res) => {
     //backup des données dans la database
 
     const sql="INSERT INTO `Backup` (`machineID`, `fileName`, `backupDate`, `backupSize`) " +
@@ -194,6 +257,7 @@ app.post('/api/client/:clientId/backup/push', getMachineID, checkDestinationFold
     let machineAddress = req.query.machineAddress;
     let backupDate = req.query.date;
     let files = req.files;
+    console.log(files);
 
     // Vérifiez si le fichier est un fichier compressé (par exemple, ZIP)
     for (const file of files) {
