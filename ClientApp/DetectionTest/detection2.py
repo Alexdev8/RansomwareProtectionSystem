@@ -32,7 +32,7 @@ class Utilitaires:
         print(f"Alerte de sécurité : {message}. L'administrateur a été notifié.")
 
     # Initialiser la base de données des extensions de fichiers sensibles
-    def initialiser_base_de_donnees(self) -> list[str]:
+    def initialiser_file_extensions_bdd(self) -> list[str]:
         try:
             with open(self.database, "r") as f:
                 return [line.lstrip(".") for line in f.read().splitlines()]
@@ -299,21 +299,6 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
 
         return len(anomalies) > 0
 
-    # Surveiller en temps réel le système pour détecter toute activité suspecte
-    def surveiller1(self, frequence: int, stop: int, extensions: list[str]) -> None:
-        for compteur in range(stop):
-            print(
-                f"\n-------- Etape de détection n°{compteur + 1} ----------------")
-            try:
-                # Mettre à jour la liste des fichiers système à chaque itération
-                fichiers_systeme = self.charger_fichier_systeme()
-                for fichier in fichiers_systeme:
-                    fichier_path = os.path.join(self.dossier, fichier)
-                    self.analyser_fichier_unique(fichier_path, extensions)
-                sleep(frequence)
-            except Exception as e:
-                self.alerte(f"Erreur système : échec lors de l'accès au journal du système. Détails de l'erreur : {e}")
-
     # Surveiller en temps réel le système pour détecter toute activité suspecte (version optimise)
     def surveiller2(self, frequence: int, stop: int, extensions: list[str]) -> None:
         # Ensemble des fichiers analysés lors de la dernière itération
@@ -381,7 +366,7 @@ def main():
 
         # Initialiser la base de données
         utilitaires = Utilitaires(dossier, database, api_key)
-        extensions = utilitaires.initialiser_base_de_donnees()
+        extensions = utilitaires.initialiser_file_extensions_bdd()
 
         while True:  # Boucle infinie pour redemander en cas de mauvaise saisie
             mode = demander_choix("""Choisissez le mode d'opération :
