@@ -2,8 +2,9 @@ import os
 import numpy as np
 import json
 import requests
-import configparser
-import load_vars
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from load_vars import get, get_keys
 from dotenv import load_dotenv 
 from hashlib import sha256
 from time import sleep, time
@@ -33,26 +34,17 @@ class Utilitaires:
     # Envoyer une alerte avec le message donnéC
     def alerte(self, message: str) -> None:
         print(f"Alerte de sécurité : {message}. L'administrateur a été notifié.")
-
-    # Initialiser la base de données des extensions de fichiers sensibles
-    def initialiser_file_extensions_bdd(self) -> list[str]:
-        try:
-            with open(self.database, "r") as f:
-                return [line.lstrip(".") for line in f.read().splitlines()]
-        except IOError as e:
-            self.error_message("Erreur d'entrée/sortie lors de l'initialisation de la base de données", self.database, e)
-            return []
-
+        
     # Charger tous les fichiers du système à partir du dossier spécifié
-    def charger_fichier_systeme(self) -> list[str]:
+    def charger_fichier_systeme(self, dossier: str) -> list[str]:
         try:
-            return list(filter(
-                lambda f: os.path.isfile(os.path.join(self.dossier, f)) and f != self.database,
-                os.listdir(self.dossier)
-            ))
-        except OSError as e:
-            self.error_message("Erreur lors de la récupération des fichiers du système", self.dossier, e)
+            fichiers = os.listdir(dossier)
+            fichiers = [fichier for fichier in fichiers if os.path.isfile(os.path.join(dossier, fichier))]
+            return fichiers
+        except FileNotFoundError:
+            print(f"Erreur lors de la récupération des fichiers du système sur '{dossier}': Le dossier n'existe pas.")
             return []
+
 
     # Détection de comportements suspects
     # - Méthode pour obtenir la taille d'un fichier
@@ -301,22 +293,28 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
             print(f"******* Le fichier {file_name} est probablement sécurisé ********")
 
         return len(anomalies) > 0
+    
+    # Analayser un dossier dans le système
+    def analyser_fichiers_dossier(self, dossier: str) -> None:
+        fichiers_systeme = self.utilitaires.charger_fichier_systeme(dossier)
+        for fichier in fichiers_systeme:
+            fichier_path = os.path.join(dossier, fichier)
+            self.analyser_fichier_unique(fichier_path, self.extensions)
 
-    # Surveiller en temps réel le système pour détecter toute activité suspecte (version optimise)
+    # Surveiller en temps réel le système pour détecter toute activité suspecte 
     def surveiller(self, frequence: int, stop: int, extensions: list[str]) -> None:
         # Ensemble des fichiers analysés lors de la dernière itération
         fichiers_precedents = set()
         for compteur in range(stop):
-            print(
-                f"\n-------- Etape de détection n°{compteur + 1} ----------------")
+            print(f"\n-------- Etape de détection n°{compteur + 1} ----------------")
             try:
                 # Mettre à jour la liste des fichiers système à chaque itération
-                fichiers_actuels = set(self.charger_fichier_systeme())
+                fichiers_actuels = set()
+                self.analyser_fichiers_dossier(self.dossier)
                 # Trouver les nouveaux fichiers ajoutés
                 nouveaux_fichiers = fichiers_actuels - fichiers_precedents
                 for fichier in nouveaux_fichiers:
-                    fichier_path = os.path.join(self.dossier, fichier)
-                    self.analyser_fichier_unique(fichier_path, extensions)
+                    self.analyser_fichier_unique(fichier, extensions)
                 # Mise à jour de l'ensemble des fichiers précédents
                 fichiers_precedents = fichiers_actuels
                 sleep(frequence)
@@ -324,31 +322,28 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
                 self.alerte(f"Erreur système : échec lors de l'accès au journal du système. Détails de l'erreur : {e}")
 
     # Surveiller les modifications du système de fichiers avec Watchdog
-    def surveiller_watchdog(self, extensions):
+    def surveiller_watchdog(self, extensions: list[str]):
         event_handler = SurveillanceFichier(self.dossier, extensions, self)
         observer = Observer()
         observer.schedule(event_handler, self.dossier, recursive=True)
 
-        # demander la durée de surveillance à l'utilisateur
+        # Demander la durée de surveillance à l'utilisateur
         duree_surveillance = int(input("Entrez la durée de surveillance en secondes : "))
 
         observer.start()
         try:
-            # suspendre l'exécution pendant la durée spécifiée
+            # Suspendre l'exécution pendant la durée spécifiée
             sleep(duree_surveillance)
 
             # Appeler on_encrypted pour chaque fichier après la surveillance
-            fichiers_systeme = self.charger_fichier_systeme()
-            for fichier in fichiers_systeme:
-                fichier_path = os.path.join(self.dossier, fichier)
-                self.on_encrypted(fichier_path)
+            self.analyser_fichiers_dossier(self.dossier)
 
         except KeyboardInterrupt:
             observer.stop()
-        observer.stop()  # arrêter l'observateur après la durée spécifiée
+        observer.stop()  # Arrêter l'observateur après la durée spécifiée
         observer.join()
-
-
+        
+        
 # Test
 def main():
     def demander_choix(message: str, choix_valides: list[str]) -> str:
@@ -362,32 +357,26 @@ def main():
     try:
         # Charger les variables d'environnement
         load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
-        
+
         # Charger l'API VirusTotal du .env
         api_key = os.getenv("API_KEY_VIRUS_TOTAL")
-        
-        # Charger les dossiers et extensions de config.ini
-        config = configparser.ConfigParser()
-        config.read('./config.ini')
 
         # Charger les extensions des fichiers
         extensions = []
-        for key in config['FILES_EXTENSIONS']:
-            extensions.append(load_vars.get('FILES_EXTENSIONS', key)) 
+        for key in get_keys('FILES_EXTENSIONS'):
+            extensions.append(get('FILES_EXTENSIONS', key))
 
         # Charger les dossiers
         dossiers = []
-        for key in config['DOSSIERS']:
-            dossiers.append(load_vars.get('DOSSIERS', key))
+        for key in get_keys('DOSSIERS'):
+            dossiers.append(get('DOSSIERS', key))
 
         utilitaires = {}
-        extensions_dict = {}
         detections = {}
 
         # Initialiser la base de données pour chaque dossier
         for dossier in dossiers:
             utilitaires[dossier] = Utilitaires(dossier, extensions, api_key)
-            extensions_dict[dossier] = utilitaires[dossier].initialiser_file_extensions_bdd()
             detections[dossier] = RansomwareDetection(dossier, extensions, api_key)
 
         while True:  # Boucle infinie pour redemander en cas de mauvaise saisie
@@ -399,7 +388,19 @@ def main():
                                       \nVotre choix : """, ['1', '2', '3', '4'])
 
             if mode in ['1', '2', '4']:
-                dossier = demander_choix("Veuillez choisir le dossier cible parmi les suivants: " + ', '.join(dossiers) + " :", dossiers)
+                print("Veuillez choisir le dossier cible parmi les suivants :")
+                for i, dossier in enumerate(dossiers, 1):
+                    print(f"{i}. {dossier}")
+                dossier_choisi = None
+                while dossier_choisi is None:
+                    try:
+                        dossier_choisi = int(input("Entrez le numéro correspondant au dossier cible : ")) - 1
+                        if dossier_choisi < 0 or dossier_choisi >= len(dossiers):
+                            raise ValueError
+                    except ValueError:
+                        print("Veuillez entrer un numéro valide correspondant à un dossier.")
+                        dossier_choisi = None
+                dossier = dossiers[dossier_choisi]
                 detection = detections[dossier]
 
             if mode == '1':
@@ -412,16 +413,14 @@ def main():
                         print("Veuillez entrer un nombre entier valide.")
                         continue
                     # Démarrer la surveillance avec les paramètres spécifiés
-                    detection.surveiller(frequence, nb_iterations, extensions[dossier])
+                    detection.surveiller(frequence, nb_iterations, extensions[dossiers.index(dossier)])
 
                 print("Surveillance en temps réel arrêtée.")
 
             elif mode == '2':
-                first_time = True
-                while demander_choix("Voulez-vous commencer l'analyse d'un fichier ? (O/N) : " if first_time else "Voulez-vous analyser un autre fichier ? (O/N) : ", ['o', 'n']) == 'o':
-                    first_time = False
+                while demander_choix("Voulez-vous commencer l'analyse d'un fichier ? (O/N) : ", ['o', 'n']) == 'o':
                     # Afficher tous les fichiers dans le dossier
-                    fichiers_systeme = utilitaires[dossier].charger_fichier_systeme()
+                    fichiers_systeme = utilitaires[dossier].charger_fichier_systeme(dossier)
                     print("Voici tous les fichiers dans le dossier spécifié :")
                     for i, fichier in enumerate(fichiers_systeme, 1):
                         print(f"{i}. {fichier}")
@@ -437,14 +436,14 @@ def main():
                             fichier_choisi = None
                     fichier_path = os.path.join(dossier, fichiers_systeme[fichier_choisi])
                     # Analyser le fichier choisi
-                    detection.analyser_fichier_unique(fichier_path, extensions[dossier])
+                    detection.analyser_fichier_unique(fichier_path, extensions)
 
                 print("Analyse de fichier terminée.")
 
             elif mode == '4':
                 while demander_choix("Voulez-vous commencer/continuer la surveillance en temps réel avec Watchdog ? (O/N) : ", ['o', 'n']) == 'o':
                     # Démarrer la surveillance avec Watchdog
-                    detection.surveiller_watchdog(extensions[dossier])
+                    detection.surveiller_watchdog(extensions)
                 print("Surveillance en temps réel avec Watchdog arrêtée.")
 
             elif mode == '3':
@@ -456,7 +455,7 @@ def main():
 
             else:
                 print("Le mode choisi n'est pas reconnu. Veuillez réessayer.")
-                
+
     except KeyboardInterrupt:
         print("\nInterruption du programme par l'utilisateur.")
 
