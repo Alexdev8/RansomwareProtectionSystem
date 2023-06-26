@@ -358,7 +358,7 @@ def main():
 
     try:
         # Charger les données à partir du fichier JSON
-        with open("config.json", "r") as f:
+        with open("./src/config.json", "r") as f:
             config_data = json.load(f)
             dossier = config_data["dossier"]
             database = config_data["database"]
