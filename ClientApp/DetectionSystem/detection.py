@@ -36,15 +36,23 @@ class Utilitaires:
         print(f"Alerte de sécurité : {message}. L'administrateur a été notifié.")
         
     # Charger tous les fichiers du système à partir du dossier spécifié
-    def charger_fichier_systeme(self, dossier: str) -> list[str]:
+    def charger_fichier_systeme(self):
         try:
-            fichiers = os.listdir(dossier)
-            fichiers = [fichier for fichier in fichiers if os.path.isfile(os.path.join(dossier, fichier))]
-            return fichiers
+            chemin_dossier = os.path.abspath(self.dossier)
+            return os.listdir(chemin_dossier)
         except FileNotFoundError:
-            print(f"Erreur lors de la récupération des fichiers du système sur '{dossier}': Le dossier n'existe pas.")
+            print(f"Le dossier {self.dossier} n'existe pas.")
             return []
 
+    # Charger tous les fichiers du système à partir du dossier spécifié dans le mode d'opération '2'
+    @staticmethod
+    def charger_fichier_systeme_mode_2(dossier):
+        try:
+            chemin_dossier = os.path.abspath(dossier)
+            return os.listdir(chemin_dossier)
+        except FileNotFoundError:
+            print(f"Le dossier {dossier} n'existe pas.")
+            return []
 
     # Détection de comportements suspects
     # - Méthode pour obtenir la taille d'un fichier
@@ -225,6 +233,25 @@ class SurveillanceFichier(FileSystemEventHandler):
         except Exception as e:
             self.detection.error_message("Erreur lors du déplacement du fichier", fichier_name, str(e))
     
+    def on_any_event(self, event):
+        try:
+            if not event.is_directory:
+                fichier_path = event.src_path
+                fichier_name = os.path.basename(fichier_path)
+                if event.event_type == 'created':
+                    print(f"Nouveau fichier créé : {fichier_name}")
+                elif event.event_type == 'modified':
+                    print(f"Fichier modifié : {fichier_name}")
+                elif event.event_type == 'deleted':
+                    print(f"Fichier supprimé ou déplacé hors du répertoire surveillé: {fichier_name}")
+                elif event.event_type == 'moved':
+                    dest_path_relative = os.path.relpath(
+                        fichier_path, self.dossier)
+                    print(f"Fichier déplacé du répertoire surveillé vers : {dest_path_relative}")
+                self.detection.analyser_fichier_unique(fichier_path, self.extensions)
+        except Exception as e:
+            self.detection.error_message("Erreur lors du traitement du fichier", fichier_name, str(e))
+
     def on_encrypted(self, file_path: str):
         size_threshold = 1000  # Taille de seuil en octets pour détecter une modification significative de la taille du fichier
         check_duration = 5  # Durée en secondes pendant laquelle vérifier le fichier
@@ -296,9 +323,10 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
     
     # Analayser un dossier dans le système
     def analyser_fichiers_dossier(self, dossier: str) -> None:
-        fichiers_systeme = self.utilitaires.charger_fichier_systeme(dossier)
+        fichiers_systeme = self.charger_fichier_systeme()
+        dossier_absolu = os.path.abspath(dossier)
         for fichier in fichiers_systeme:
-            fichier_path = os.path.join(dossier, fichier)
+            fichier_path = os.path.join(dossier_absolu, fichier)
             self.analyser_fichier_unique(fichier_path, self.extensions)
 
     # Surveiller en temps réel le système pour détecter toute activité suspecte 
@@ -420,7 +448,7 @@ def main():
             elif mode == '2':
                 while demander_choix("Voulez-vous commencer l'analyse d'un fichier ? (O/N) : ", ['o', 'n']) == 'o':
                     # Afficher tous les fichiers dans le dossier
-                    fichiers_systeme = utilitaires[dossier].charger_fichier_systeme(dossier)
+                    fichiers_systeme = Utilitaires.charger_fichier_systeme_mode_2(dossier)
                     print("Voici tous les fichiers dans le dossier spécifié :")
                     for i, fichier in enumerate(fichiers_systeme, 1):
                         print(f"{i}. {fichier}")
