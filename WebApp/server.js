@@ -37,12 +37,18 @@ function refreshConnection() {
 function getMachineID(req, res, next) {
     let sql = "SELECT `machineID` FROM `Machine` WHERE `machineAddress`= ?";
     connection.query(sql, [req.query.machineAddress], (err, results, fields) => {
+        console.log(results)
+        console.log(req.query.machineAddress)
         if (!err) {
+            if (results.length === 0) {
+                res.status(400).send("Cette machine n'est pas enregistrée");
+                return;
+            }
             req.machineID = results[0].machineID.toString();
             next();
         }
         else {
-            !res.status(400).send("Cette machine n'est pas enregistrée pour ce client");
+            res.status(400).send("Cette machine n'est pas enregistrée pour ce client");
         }
     });
 }
@@ -102,7 +108,7 @@ const upload = multer({ storage:
     multer.diskStorage({
         destination: function (req, file, cb) {
             // Spécifiez le dossier de destination pour les fichiers reçus
-            cb(null, path.join(process.env.CLIENT_DATA_PATH, req.params.clientId, req.machineID));
+            cb(null, process.env.TEMP_PATH);
         },
         filename: function (req, file, cb) {
             // Générez un nom de fichier unique
@@ -110,6 +116,50 @@ const upload = multer({ storage:
         }
     })
 });
+
+// Middleware de chiffrement du fichier
+const encryptFile = (req, res, next) => {
+    const files = req.files;
+
+    // Clé de chiffrement
+    const key = process.env.ENCRYPT_KEY;
+    const algorithm = 'aes-256-ecb';
+    const keyBytes = Buffer.from(key, 'hex');
+
+    // Lire le contenu du fichier
+    fs.readFile(files[0].path, (err, data) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).send('Erreur lors de la lecture du fichier.');
+        }
+
+        // Chiffrer le contenu du fichier
+        const cipher = crypto.createCipheriv(algorithm, keyBytes, null);
+        const encryptedData = Buffer.concat([cipher.update(data), cipher.final()]);
+
+        // Chemin de destination pour enregistrer le fichier chiffré
+        const destinationPath = path.join(process.env.CLIENT_DATA_PATH, req.params.clientId, req.machineID, files[0].originalname);
+
+        // Enregistrer le fichier chiffré dans ClientData (process.env.CLIENT_DATA_PATH)
+        fs.writeFile(destinationPath, encryptedData, (err) => {
+            if (err) {
+                console.error(err);
+                return res.status(500).send("Erreur lors de l'enregistrement du fichier chiffré.");
+            }
+            // Supprimer le fichier d'origine qui se trouve dans le dossier temp
+            fs.unlink(files[0].path, (err) => {
+                if (err) {
+                    console.error(err);
+                }
+
+                // Ajouter les informations du fichier chiffré à la requête
+                req.encryptedFilePath = destinationPath;
+
+                next();
+            });
+        });
+    });
+};
 
 function clearOldBackup(req, res, next) {
     let storage_folder = path.join(process.env.CLIENT_DATA_PATH, req.params.clientId, req.machineID);
@@ -242,7 +292,7 @@ app.use(express.static(path.join(__dirname, "site/build")));
 //     });
 // });
 
-app.post('/api/client/:clientId/backup/push', getMachineID, checkToken, checkDestinationFolder, upload.array('files'), clearOldBackup, (req, res) => {
+app.post('/api/client/:clientId/backup/push', getMachineID, checkToken, checkDestinationFolder, upload.array('files'), encryptFile, clearOldBackup, (req, res) => {
     //backup des données dans la database
 
     const sql="INSERT INTO `Backup` (`machineID`, `fileName`, `backupDate`, `backupSize`) " +
