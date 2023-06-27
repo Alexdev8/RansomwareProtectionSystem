@@ -336,7 +336,7 @@ app.post('/api/client/:clientId/backup/push', getMachineID, checkToken, checkDes
 });
 
 app.post('/api/client/:clientId/machine/register', checkToken,  (req, res) => {
-    //add a json type account object to the database
+    //add a new machine to a client account
 
     const sql="INSERT INTO `Machine`(`clientID`, `machineAddress`, `token`) " +
         "VALUES (?, ?, ?)";
@@ -355,7 +355,29 @@ app.post('/api/client/:clientId/machine/register', checkToken,  (req, res) => {
     });
 });
 
+app.post('/api/client/:clientId/machine/error', getMachineID, checkToken,  (req, res) => {
+    //add a new error
+
+    const sql="INSERT INTO `Error`(`machineID`, `type`, `file_path`, `date`, `message`) VALUES (?, ?, ?, ?, ?)";
+    console.log(req.body);
+
+    refreshConnection();
+    connection.query(sql, [req.machineID, req.body.type, req.body.path, req.body.date, req.body.message],(err, results, fields) => {
+        console.log(err);
+        if (!err) {
+            res.statusCode = 201;
+            res.send(results);
+            console.log('Error added');
+        }
+        else {
+            res.sendStatus(409);
+            return console.error('error during query: ' + err.code);
+        }
+    });
+});
+
 // app.get('/api/account', (req, res) => {
+
 //     //get account information by email
 //
 //     const sql="SELECT `accountID`, `firstName`, `lastName`, `email`, `birthDate`, `phoneNumber`, `newsLetterSubscription` FROM `Accounts` WHERE email= ?";
