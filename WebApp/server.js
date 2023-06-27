@@ -54,14 +54,43 @@ function getMachineID(req, res, next) {
     });
 }
 
-function checkToken(req, res, next) {
+function checkMachineToken(req, res, next) {
     let token = req.headers.authorization; // Récupérer le token depuis l'en-tête
     if (token && token.startsWith("Bearer ")) {
         // Extraire le token en supprimant le préfixe "Bearer "
         token = token.substring(7);
         connection.query(
-            "SELECT * FROM `Machine` WHERE token=?",
-            [token],
+            "SELECT * FROM `Machine` WHERE token=? AND machineID=?",
+            [token, req.machineID],
+            (err, results) => {
+                if (err) {
+                    console.error("Erreur lors de la vérification du token :", err);
+                    return res.sendStatus(500);
+                }
+
+                if (results.length === 0) {
+                    // Token invalide ou non trouvé dans la base de données
+                    return res.sendStatus(401); // Unauthorized
+                }
+
+                // Token valide, passer à l'étape suivante
+                next();
+            }
+        );
+    }
+    else {
+        return res.sendStatus(401);
+    }
+}
+
+function checkSessionToken(req, res, next) {
+    let token = req.headers.authorization; // Récupérer le token depuis l'en-tête
+    if (token && token.startsWith("Bearer ")) {
+        // Extraire le token en supprimant le préfixe "Bearer "
+        token = token.substring(7);
+        connection.query(
+            "SELECT * FROM `Session` WHERE sessionToken=? AND clientID=?",
+            [token, req.params.clientID],
             (err, results) => {
                 if (err) {
                     console.error("Erreur lors de la vérification du token :", err);
@@ -196,6 +225,25 @@ function clearOldBackup(req, res, next) {
     });
 }
 
+function createSessionToken(req, res) {
+    const sql="INSERT INTO `Session`(`clientID`, `sessionToken`, `grantDate`) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE `sessionToken`=?, `grantDate`=?;";
+
+    const date = new Date();
+    const connection_token = generateSecureKey(40);
+    refreshConnection();
+    connection.query(sql, [req.clientID, connection_token, date.toISOString(), connection_token, date.toISOString()], (err, results, fields) => {
+        if (!err) {
+            res.statusCode = 200;
+            res.send({"clientID": req.clientID, "connectionToken": connection_token});
+            console.log("[Client " + req.clientID + "] Login successful");
+        }
+        else {
+            res.sendStatus(409);
+            return console.error('error during query: ' + err.code);
+        }
+    });
+}
+
 function formatDateUser(date) {
     let tdate = moment(date);
     return tdate.format("DD/MM/YYYY");
@@ -244,54 +292,7 @@ app.use(bodyParser.urlencoded({extended: true}));
 // Where to serve static content
 app.use(express.static(path.join(__dirname, "site/build")));
 
-// app.get('/api/tickets/:id', (req, res) => {
-//     //get ticket information by ref
-//
-//     const sql="SELECT * FROM Tickets WHERE ticketRef= ?";
-//
-//     refreshConnection();
-//     connection.query(sql, [req.params.id],(err, results, fields) => {
-//         if (!err) {
-//             res.send(results[0]);
-//             console.log('Result sent');
-//         }
-//         else {
-//             res.send('error during query: ' + err.message);
-//             return console.error('error during query: ' + err.message);
-//         }
-//     });
-// });
-//
-// app.get('/api/tickets', (req, res) => {
-//     //get all tickets with account ID
-//
-//     const sql="SELECT * FROM Tickets WHERE accountID= ?";
-//
-//     refreshConnection();
-//     connection.query(sql, [req.query.accountID],(err, results, fields) => {
-//         if (!err) {
-//             if (results.length !== 0) {
-//                 for(let result of results) {
-//                     result.ticketValidityStartDate = formatDateUser(result.ticketValidityStartDate);
-//                     result.ticketValidityEndDate = formatDateUser(result.ticketValidityEndDate);
-//                 }
-//                 res.send(results);
-//                 console.log('Result sent');
-//             }
-//             else {
-//                 res.statusCode = 404;
-//                 res.send("No tickets related to this account ID");
-//             }
-//         }
-//         else {
-//             res.statusCode = 404;
-//             res.send("No tickets related to this account ID");
-//             return console.error('error during query: ' + err.message);
-//         }
-//     });
-// });
-
-app.post('/api/client/:clientId/backup/push', getMachineID, checkToken, checkDestinationFolder, upload.array('files'), encryptFile, clearOldBackup, (req, res) => {
+app.post('/api/client/:clientId/backup/push', getMachineID, checkMachineToken, checkDestinationFolder, upload.array('files'), encryptFile, clearOldBackup, (req, res) => {
     //backup des données dans la database
 
     const sql="INSERT INTO `Backup` (`machineID`, `fileName`, `backupDate`, `backupSize`) " +
@@ -319,7 +320,7 @@ app.post('/api/client/:clientId/backup/push', getMachineID, checkToken, checkDes
     refreshConnection();
     connection.query(sql, [machineAddress, files[0].filename, backupDate, files[0].size], (err, results, fields) => {
         if (!err) {
-            res.send("Backup stored successfully");
+            res.status(201).send("Backup stored successfully");
             return console.log('['+ clientID + ' - ' + machineAddress + ']' + " Backup effectué avec succès !");
         }
         else {
@@ -335,7 +336,7 @@ app.post('/api/client/:clientId/backup/push', getMachineID, checkToken, checkDes
     });
 });
 
-app.post('/api/client/:clientId/machine/register', checkToken,  (req, res) => {
+app.post('/api/client/:clientId/machine/register', checkSessionToken,  (req, res) => {
     //add a new machine to a client account
 
     const sql="INSERT INTO `Machine`(`clientID`, `machineAddress`, `token`) " +
@@ -355,7 +356,7 @@ app.post('/api/client/:clientId/machine/register', checkToken,  (req, res) => {
     });
 });
 
-app.post('/api/client/:clientId/machine/error', getMachineID, checkToken,  (req, res) => {
+app.post('/api/client/:clientId/machine/error', getMachineID, checkMachineToken,  (req, res) => {
     //add a new error
 
     const sql="INSERT INTO `Error`(`machineID`, `type`, `file_path`, `date`, `message`) VALUES (?, ?, ?, ?, ?)";
@@ -402,38 +403,87 @@ app.post('/api/client/:clientId/machine/error', getMachineID, checkToken,  (req,
 //         }
 //     });
 // });
-//
-// app.post('/api/account/register', (req, res) => {
-//     //add a json type account object to the database
-//
-//     let account = req.body;
-//     let cypheredPassword = "";
-//
-//     const sql="INSERT INTO `Accounts`(`firstName`, `lastName`, `birthDate`, `email`, `password`, `phoneNumber`, `newsLetterSubscription`) " +
-//         "VALUES (?, ?, ?, ?, ?, ?, ?)";
-//
-//     refreshConnection();
-//     bcrypt.hash(account.password, 10, function(err, hash) {
-//         if (!err) {
-//             cypheredPassword = hash;
-//         }
-//         else {
-//             cypheredPassword = account.password;
-//         }
-//         connection.query(sql, [formatString(account.firstName), formatString(account.lastName), formatDateServer(account.birthDate), formatString(account.email), cypheredPassword, account.phoneNumber, account.newsLetter],(err, results, fields) => {
-//             if (!err) {
-//                 res.statusCode = 201;
-//                 res.send(results);
-//                 console.log('Result sent');
-//             }
-//             else {
-//                 res.statusCode = 409;
-//                 res.send(err.code);
-//                 return console.error('error during query: ' + err.code);
-//             }
-//         });
-//     });
-// });
+
+app.post('/api/client/register', (req, res) => {
+    //add a client account
+    /*
+    Body json:
+    {
+    "email": "",
+    "password":"",
+    "firstName":"",
+    "lastName":"",
+    "phone":0,
+    "company":"",
+    "subscription":""
+    }
+    */
+
+    let client = req.body;
+    let cypheredPassword = "";
+
+    const sql="INSERT INTO `Client`(`clientID`, `email`, `password`, `firstName`, `lastName`, `phone`, `company`, `subscription`) " +
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+
+    refreshConnection();
+    bcrypt.hash(client.password, 10, function(err, hash) {
+        if (!err) {
+            cypheredPassword = hash;
+        }
+        else {
+            cypheredPassword = client.password;
+        }
+        connection.query(sql, [generateSecureKey(10), formatString(client.email), cypheredPassword, formatString(client.firstName), formatString(client.lastName), client.phone, formatString(client.company), client.subscription],(err, results, fields) => {
+            if (!err) {
+                res.statusCode = 201;
+                res.send(results);
+                console.log('Result sent');
+            }
+            else {
+                console.log(err);
+                res.statusCode = 409;
+                res.send(err.code);
+                return console.error('error during query: ' + err.code);
+            }
+        });
+    });
+});
+
+app.post('/api/client/login', (req, res, next) => {
+    //check if credentials match client data
+    /*
+    Body json:
+    {
+    "email": "",
+    "password":""
+    }
+    */
+
+    let creds = req.body;
+    const sql="SELECT `password`, `clientID` FROM `Client` WHERE `email`= ?";
+
+    refreshConnection();
+    connection.query(sql, [formatString(creds.email)],(err, results, fields) => {
+        if (!err && results.length !== 0) {
+            bcrypt.compare(creds.password, results[0].password, function(err, result) {
+                if (result) {
+                    req.clientID = results[0].clientID;
+                    next()
+                }
+                else {
+                    res.statusCode = 401;
+                    res.send("Password invalid");
+                }
+            });
+        }
+        else {
+            res.statusCode = 404;
+            res.send("This account doesn't exist");
+        }
+    });
+    }, createSessionToken
+);
+
 //
 // app.patch('/api/account/update', (req, res) => {
 //     //update a json type account object in the database
@@ -465,34 +515,6 @@ app.post('/api/client/:clientId/machine/error', getMachineID, checkToken,  (req,
 //                 res.send("This account doesn't exist");
 //                 return console.error('No such account exist: ' + err.code);
 //             }
-//         }
-//     });
-// });
-//
-// app.post('/api/account/login', (req, res) => {
-//     //check if credentials match account object
-//
-//     let creds = req.body;
-//     const sql="SELECT `password` FROM `Accounts` WHERE `email`= ?";
-//
-//     refreshConnection();
-//     connection.query(sql, [formatString(creds.email)],(err, results, fields) => {
-//         if (!err) {
-//             bcrypt.compare(creds.password, results[0].password, function(err, result) {
-//                 if (result) {
-//                     res.statusCode = 200;
-//                     res.send(creds.email);
-//                 }
-//                 else {
-//                     res.statusCode = 401;
-//                     res.send("Password invalid");
-//                 }
-//             });
-//         }
-//         else {
-//             res.statusCode = 404;
-//             res.send("This account doesn't exist");
-//             return console.error('No such account exist: ' + err.code);
 //         }
 //     });
 // });
