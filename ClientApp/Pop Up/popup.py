@@ -4,6 +4,9 @@ from PIL import Image, ImageTk
 from dotenv import load_dotenv
 import ClientApp.load_vars as vars
 
+
+
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
 A= os.environ.get('ACCESS_TOKEN')
 b=vars.get("VARS","CLIENT_ID")
 print(A,b)
