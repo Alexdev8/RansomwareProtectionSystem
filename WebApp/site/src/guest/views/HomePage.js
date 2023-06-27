@@ -1,12 +1,10 @@
 import React from 'react';
-import html2pdf from 'html2pdf.js';
 import NavBar from '../components/NavBar';
 import './HomePage.css';
 
 export default function HomePage() {
     const downloadPdf = () => {
         const element = document.getElementById('app');
-        html2pdf().from(element).save('web_page.pdf');
     };
 
     return (
