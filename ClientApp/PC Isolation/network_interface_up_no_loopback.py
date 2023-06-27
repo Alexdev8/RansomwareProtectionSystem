@@ -38,5 +38,3 @@ if system == 'Linux':
             interfaces_to_disabled.append(interface)
     for interface in interfaces_to_disabled:
         disable_interfaces_linux(interface)
-for interface in interfaces_to_disabled:
-    disable_interfaces(interface)
