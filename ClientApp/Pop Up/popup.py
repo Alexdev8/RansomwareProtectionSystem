@@ -1,11 +1,13 @@
 import tkinter as tk
 from PIL import Image, ImageTk
 import os
-#import ClientApp.load_vars as vars
+from dotenv import load_dotenv
+import load_vars as vars
+import requests
 
-#load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
 
 
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
 
 
 
@@ -66,7 +68,7 @@ def Message_Erreur(special_text):
     text_y = dialog_height // 2
 
     # Affichage du texte sur le canevas
-    canvas.create_text(text_x, text_y, text=special_text, fill='black', font=('Arial', 16), justify='center', width=dialog_width - 20, anchor='center', tags='special_text')
+    canvas.create_text(text_x, text_y, text=special_text, fill='black', font=('Arial', 16), justify='center', width=dialog_width - 20, anchor='center',                        tags='special_text')
 
 
 
@@ -123,7 +125,8 @@ def ConnectionAdmin():
     connection.mainloop()
 
 
-
+a=vars.get("VARS","CLIENT_ID")
+print(a)
 # Exemple d'utilisation
 Message="Cher utilisateur,"+"\n"+"Nous souhaitons vous informer que vous semblez actuellement victime d'une attaque de ransomware, mais ne vous inquiétez pas, nous somme là pour vous aider."+"\n\n\n"+"Veuillez contacter votre administrateur"
 Message_Erreur(Message)
