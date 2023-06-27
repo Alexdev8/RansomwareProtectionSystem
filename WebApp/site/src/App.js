@@ -14,7 +14,7 @@ export default function App() {
             <div className="logo-container">
               <img
                 className="logo"
-                src="./RPS_logo.png"
+                src="./RPS.png"
                 alt="Logo de HackFactorizz"
               />
             </div>
