@@ -32,7 +32,7 @@ if system == "Darwin":
             interfaces_to_disabled.append(interface)
     for interface in interfaces_to_disabled:
         disable_interfaces_mac(interface)
-if platform.system() == 'Linux':
+if system == 'Linux':
     for interface in network_interfaces:
         if not is_loopback_linux(interface):
             interfaces_to_disabled.append(interface)
