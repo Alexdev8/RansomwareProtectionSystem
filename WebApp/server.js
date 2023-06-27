@@ -2,6 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const path = require('path');
 const fs = require("fs");
+const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 let mysql = require('mysql');
 let multer = require('multer');
@@ -219,11 +220,9 @@ function generateRef(use) {
     return result;
 }
 
-function generateSecureKey() {
-    const length = 40; // Longueur de la clé en nombre de caractère
-
+function generateSecureKey(length) {
     // Générer des octets aléatoires sécurisés
-    const buffer = crypto.randomBytes(30);
+    const buffer = crypto.randomBytes(length);
 
     // Convertir les octets en une chaîne encodée en base64
     let base64String = buffer.toString('base64');
@@ -336,42 +335,25 @@ app.post('/api/client/:clientId/backup/push', getMachineID, checkToken, checkDes
     });
 });
 
-app.post('/api/client/:clientId/machine/register', (req, res) => {
+app.post('/api/client/:clientId/machine/register', checkToken,  (req, res) => {
     //add a json type account object to the database
 
-    let account = req.body;
-    let cypheredPassword = "";
-
-    const sql="INSERT INTO `Accounts`(`firstName`, `lastName`, `birthDate`, `email`, `password`, `phoneNumber`, `newsLetterSubscription`) " +
-        "VALUES (?, ?, ?, ?, ?, ?, ?)";
+    const sql="INSERT INTO `Machine`(`clientID`, `machineAddress`, `token`) " +
+        "VALUES (?, ?, ?)";
 
     refreshConnection();
-    bcrypt.hash(account.password, 10, function(err, hash) {
+    connection.query(sql, [req.params.clientId, req.query.machineAddress, generateSecureKey(40)],(err, results, fields) => {
         if (!err) {
-            cypheredPassword = hash;
+            res.statusCode = 201;
+            res.send(results);
+            console.log('Machine added');
         }
         else {
-            cypheredPassword = account.password;
+            res.sendStatus(409);
+            return console.error('error during query: ' + err.code);
         }
-        connection.query(sql, [formatString(account.firstName), formatString(account.lastName), formatDateServer(account.birthDate), formatString(account.email), cypheredPassword, account.phoneNumber, account.newsLetter],(err, results, fields) => {
-            if (!err) {
-                res.statusCode = 201;
-                res.send(results);
-                console.log('Result sent');
-            }
-            else {
-                res.statusCode = 409;
-                res.send(err.code);
-                return console.error('error during query: ' + err.code);
-            }
-        });
     });
 });
-
-app.get('test', (req, res) => {
-    res.send("Ca marche mon boeuf");
-});
-
 
 // app.get('/api/account', (req, res) => {
 //     //get account information by email
