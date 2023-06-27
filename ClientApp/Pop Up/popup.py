@@ -1,14 +1,12 @@
+import os
 import tkinter as tk
 from PIL import Image, ImageTk
-import os
 from dotenv import load_dotenv
-import load_vars as vars
-import requests
+import ClientApp.load_vars as vars
 
-
-
-load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
-
+A= os.environ.get('ACCESS_TOKEN')
+b=vars.get("VARS","CLIENT_ID")
+print(A,b)
 
 
 
@@ -125,8 +123,8 @@ def ConnectionAdmin():
     connection.mainloop()
 
 
-a=vars.get("VARS","CLIENT_ID")
-print(a)
+#a=vars.get("VARS","CLIENT_ID")
+#print(a)
 # Exemple d'utilisation
 Message="Cher utilisateur,"+"\n"+"Nous souhaitons vous informer que vous semblez actuellement victime d'une attaque de ransomware, mais ne vous inquiétez pas, nous somme là pour vous aider."+"\n\n\n"+"Veuillez contacter votre administrateur"
 Message_Erreur(Message)
