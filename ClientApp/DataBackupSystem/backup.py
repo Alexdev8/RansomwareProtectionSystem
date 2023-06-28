@@ -10,7 +10,7 @@ import ClientApp.load_vars as vars
 
 source_dir = "source_dir"
 backup_dir = "backup_dir"
-directory_to_send = "backup_dir/backup24062023162042"
+directory_to_send = "backup_dir/backup28062023140357"
 
 load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
 
@@ -72,7 +72,7 @@ def send_directory_files(directory, url):
         response = requests.post(url, params={"machineAddress":':'.join(re.findall('..', '%012x' % uuid.getnode())), "date": datetime.datetime.now()}, files=files, headers={"Authorization": f"Bearer {os.environ.get('ACCESS_TOKEN')}"})
 
         # Traiter la réponse du serveur si nécessaire
-        if response.status_code==200:
+        if response.status_code==201:
             print("Répertoire envoyé avec succès !")
         else:
             print("Une erreur est survenue lors de l'envoi !")

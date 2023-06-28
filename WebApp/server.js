@@ -38,8 +38,6 @@ function refreshConnection() {
 function getMachineID(req, res, next) {
     let sql = "SELECT `machineID` FROM `Machine` WHERE `machineAddress`= ?";
     connection.query(sql, [req.query.machineAddress], (err, results, fields) => {
-        console.log(results)
-        console.log(req.query.machineAddress)
         if (!err) {
             if (results.length === 0) {
                 res.status(400).send("Cette machine n'est pas enregistrée");
@@ -90,7 +88,7 @@ function checkSessionToken(req, res, next) {
         token = token.substring(7);
         connection.query(
             "SELECT * FROM `Session` WHERE sessionToken=? AND clientID=?",
-            [token, req.params.clientID],
+            [token, req.params.clientId],
             (err, results) => {
                 if (err) {
                     console.error("Erreur lors de la vérification du token :", err);
@@ -131,6 +129,26 @@ function checkDestinationFolder(req, res, next){
     }
     // Le dossier de destination existe, continuer le traitement des fichiers
     next();
+}
+
+function sendFile(req, res){
+    let options = {
+        headers: {
+            'Content-Type': 'application/zip',
+            'Content-Disposition': 'attachment'
+        }
+    }
+
+    res.download(req.backupFileTempPath, options, (err) => {
+        if (err) {
+            console.log('Erreur lors du téléchargement du fichier', err);
+            res.status(500).send('Erreur lors du téléchargement du fichier');
+        } else {
+            console.log('Fichier téléchargé avec succès');
+            // Supprimer le fichier temporaire après le téléchargement
+            fs.unlinkSync(req.backupFileTempPath);
+        }
+    });
 }
 
 // Configuration de Multer pour gérer les fichiers reçus
@@ -193,7 +211,11 @@ const encryptFile = (req, res, next) => {
 
 // Middleware de déchiffrement de fichier
 const decryptFile = (req, res, next) => {
-    const encryptedFilePath = req.encryptedFilePath;
+    // Vérifier si le dossier de destination existe
+    let backupPath = path.join(process.env.CLIENT_DATA_PATH, req.params.clientId, req.machineID.toString(), req.backupFileName);
+    if (!fs.existsSync(backupPath)) {
+        return res.status(404).send("Il semble que ce backup n'existe pas.");
+    }
 
     // Clé de déchiffrement
     const key = process.env.ENCRYPT_KEY;
@@ -201,7 +223,7 @@ const decryptFile = (req, res, next) => {
     const keyBytes = Buffer.from(key, 'hex');
 
     // Lire le contenu du fichier chiffré
-    fs.readFile(encryptedFilePath, (err, encryptedData) => {
+    fs.readFile(backupPath, (err, encryptedData) => {
         if (err) {
             console.error(err);
             return res.status(500).send("Erreur lors de la lecture du fichier chiffré.");
@@ -212,34 +234,22 @@ const decryptFile = (req, res, next) => {
         const decryptedData = Buffer.concat([decipher.update(encryptedData), decipher.final()]);
 
         // Chemin de destination pour enregistrer le fichier déchiffré
-        const destinationPath = process.env.TEMP_PATH; // Spécifiez le chemin de destination pour le fichier déchiffré
+        const backupTemppath = path.join(process.env.TEMP_PATH, req.backupFileName);
 
-            // Enregistrer le fichier déchiffré à la destination spécifiée
-            fs.writeFile(destinationPath, decryptedData, (err) => {
-                if (err) {
-                    console.error(err);
-                    return res.status(500).send("Erreur lors de l'enregistrement du fichier déchiffré.");
-                }
-
-                // Supprimer le fichier chiffré
-                fs.unlink(encryptedFilePath, (err) => {
-                    if (err) {
-                        console.error(err);
-                    }
-
-                    // Ajouter les informations du fichier déchiffré à la requête
-                    req.decryptedFilePath = destinationPath;
-
-                    next();
-                });
-            });
+        // Enregistrer le fichier déchiffré à la destination spécifiée
+        fs.writeFile(backupTemppath, decryptedData, (err) => {
+            if (err) {
+                console.error(err);
+                return res.status(500).send("Erreur lors de l'enregistrement du fichier déchiffré.");
+            }
+            req.backupFileTempPath = backupTemppath;
+            next();
+        });
     });
-};
-
+}
 
 function clearOldBackup(req, res, next) {
     let storage_folder = path.join(process.env.CLIENT_DATA_PATH, req.params.clientId, req.machineID);
-    console.log(storage_folder);
     // Vérifier le nombre de sauvegardes existantes
     fs.readdir(storage_folder, (err, files) => {
         if (err) {
@@ -353,7 +363,6 @@ app.post('/api/client/:clientId/backup/push', getMachineID, checkMachineToken, c
     let machineAddress = req.query.machineAddress;
     let backupDate = req.query.date;
     let files = req.files;
-    console.log(files);
 
     // Vérifiez si le fichier est un fichier compressé (par exemple, ZIP)
     for (const file of files) {
@@ -372,7 +381,7 @@ app.post('/api/client/:clientId/backup/push', getMachineID, checkMachineToken, c
         else {
             fs.unlinkSync(files[0].path);
             if (err.code === "ER_NO_REFERENCED_ROW_2") {
-                res.status(400).send("Cette machine n'est pas enregistrée pour ce client");
+                res.status(404).send("Cette machine n'est pas enregistrée pour ce client");
             }
             else {
                 res.status(400).send('error during query: ' + err.message);
@@ -381,6 +390,33 @@ app.post('/api/client/:clientId/backup/push', getMachineID, checkMachineToken, c
         }
     });
 });
+
+app.get('/api/client/:clientId/backup/:backupID/download', checkSessionToken, (req, res, next) => {
+    //download d'un backup
+
+    const sql="SELECT `machineID`, `fileName` FROM `Backup` WHERE `backupID`=?";
+
+    let clientID = req.params.clientId;
+    let backupID = req.params.backupID;
+
+    refreshConnection();
+    connection.query(sql, [backupID], (err, results, fields) => {
+        if (!err) {
+            req.machineID = results[0].machineID;
+            req.backupFileName = results[0].fileName;
+            next();
+        }
+        else {
+            if (err.code === "ER_NO_REFERENCED_ROW_2") {
+                res.status(404).send("Ce backup n'existe pas");
+            }
+            else {
+                res.status(400).send('error during query: ' + err.message);
+                return console.error('error during query: ' + err.message);
+            }
+        }
+    });
+}, decryptFile, sendFile);
 
 app.post('/api/client/:clientId/machine/register', checkSessionToken,  (req, res) => {
     //add a new machine to a client account
