@@ -191,6 +191,52 @@ const encryptFile = (req, res, next) => {
     });
 };
 
+// Middleware de déchiffrement de fichier
+const decryptFile = (req, res, next) => {
+    const encryptedFilePath = req.encryptedFilePath;
+
+    // Clé de déchiffrement
+    const key = process.env.ENCRYPT_KEY;
+    const algorithm = 'aes-256-ecb';
+    const keyBytes = Buffer.from(key, 'hex');
+
+    // Lire le contenu du fichier chiffré
+    fs.readFile(encryptedFilePath, (err, encryptedData) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).send("Erreur lors de la lecture du fichier chiffré.");
+        }
+
+        // Déchiffrer le contenu du fichier
+        const decipher = crypto.createDecipheriv(algorithm, keyBytes, null);
+        const decryptedData = Buffer.concat([decipher.update(encryptedData), decipher.final()]);
+
+        // Chemin de destination pour enregistrer le fichier déchiffré
+        const destinationPath = process.env.TEMP_PATH; // Spécifiez le chemin de destination pour le fichier déchiffré
+
+            // Enregistrer le fichier déchiffré à la destination spécifiée
+            fs.writeFile(destinationPath, decryptedData, (err) => {
+                if (err) {
+                    console.error(err);
+                    return res.status(500).send("Erreur lors de l'enregistrement du fichier déchiffré.");
+                }
+
+                // Supprimer le fichier chiffré
+                fs.unlink(encryptedFilePath, (err) => {
+                    if (err) {
+                        console.error(err);
+                    }
+
+                    // Ajouter les informations du fichier déchiffré à la requête
+                    req.decryptedFilePath = destinationPath;
+
+                    next();
+                });
+            });
+    });
+};
+
+
 function clearOldBackup(req, res, next) {
     let storage_folder = path.join(process.env.CLIENT_DATA_PATH, req.params.clientId, req.machineID);
     console.log(storage_folder);
@@ -404,6 +450,7 @@ app.post('/api/client/:clientId/machine/error', getMachineID, checkMachineToken,
 //     });
 // });
 
+// Creation de client
 app.post('/api/client/register', (req, res) => {
     //add a client account
     /*
@@ -424,7 +471,7 @@ app.post('/api/client/register', (req, res) => {
 
     const sql="INSERT INTO `Client`(`clientID`, `email`, `password`, `firstName`, `lastName`, `phone`, `company`, `subscription`) " +
         "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-
+    let clientID = generateSecureKey(10);
     refreshConnection();
     bcrypt.hash(client.password, 10, function(err, hash) {
         if (!err) {
@@ -433,17 +480,34 @@ app.post('/api/client/register', (req, res) => {
         else {
             cypheredPassword = client.password;
         }
-        connection.query(sql, [generateSecureKey(10), formatString(client.email), cypheredPassword, formatString(client.firstName), formatString(client.lastName), client.phone, formatString(client.company), client.subscription],(err, results, fields) => {
-            if (!err) {
-                res.statusCode = 201;
-                res.send(results);
-                console.log('Result sent');
+        // Create a folder named clientID in ClientData directory
+        const folderPath = 'ClientData/' + clientID;
+        fs.mkdir(folderPath, (err) => {
+            if (err) {
+                console.error('Failed to create client folder:', err);
             }
             else {
-                console.log(err);
-                res.statusCode = 409;
-                res.send(err.code);
-                return console.error('error during query: ' + err.code);
+                connection.query(sql, [clientID, formatString(client.email), cypheredPassword, formatString(client.firstName), formatString(client.lastName), client.phone, formatString(client.company), client.subscription],(err, results, fields) => {
+                    if (!err) {
+                        res.statusCode = 201;
+                        res.send(results);
+                        console.log('Client successfully created');
+                    }
+                    else {
+                        console.log(err);
+                        res.statusCode = 409;
+                        res.send(err.code);
+                        // Delete the ClientID file in ClientData/
+                        fs.rmdir(folderPath, (err) => {
+                            if (err) {
+                                console.error('Failed to remove client folder:', err);
+                            } else {
+                                console.log('Client folder removed:', folderPath);
+                            }
+                        });
+                        return console.error('error during query: ' + err.code);
+                    }
+                });
             }
         });
     });
