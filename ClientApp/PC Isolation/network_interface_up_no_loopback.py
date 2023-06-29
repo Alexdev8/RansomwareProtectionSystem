@@ -24,17 +24,20 @@ if system == "Windows":
     for interface in network_interfaces:
         if not is_loopback(interface):
             interfaces_to_disabled.append(interface)
+            print(interface)
     for interface in interfaces_to_disabled:
         disable_interfaces(interface)
 if system == "Darwin":
     for interface in network_interfaces:
         if not is_loopback_mac(interface):
             interfaces_to_disabled.append(interface)
+            print(interface)
     for interface in interfaces_to_disabled:
         disable_interfaces_mac(interface)
 if system == 'Linux':
     for interface in network_interfaces:
         if not is_loopback_linux(interface):
             interfaces_to_disabled.append(interface)
+            print(interface)
     for interface in interfaces_to_disabled:
         disable_interfaces_linux(interface)
