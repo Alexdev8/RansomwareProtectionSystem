@@ -18,8 +18,11 @@ from PIL import Image
 from cv2 import VideoCapture
 from py_compile import compile
 
-from ClientApp.load_vars import get, get_keys
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from load_vars import get, get_keys
 from prettytable import PrettyTable
+from requests.exceptions import RequestException
 
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
@@ -34,7 +37,7 @@ class Utilitaires:
     # Afficher un message d'erreur personnalisé pour une meilleure traçabilité des erreurs
     @staticmethod
     def error_message(err_type: str, file_name: str, message: str) -> None:
-        rel_file_path = os.path.abspath(file_name)
+        rel_file_path = os.path.relpath(file_name)
         print(f"{err_type} sur {rel_file_path}: {message}")
 
     # Envoyer une alerte avec le message donnéC
@@ -190,6 +193,7 @@ class SurveillanceFichier(FileSystemEventHandler):
         self.dossier = dossier
         self.extensions = extensions
         self.detection = detection
+        self.toutes_anomalies = []  # Initialiser toutes_anomalies
 
     def on_created(self, event):
         try:
@@ -226,8 +230,9 @@ class SurveillanceFichier(FileSystemEventHandler):
             if not event.is_directory:
                 fichier_path = event.src_path
                 fichier_name = os.path.basename(fichier_path)
-                dest_path_absolue = os.path.abspath(fichier_path, self.dossier)
-                print(f"Fichier déplacé du répertoire surveillé vers : {dest_path_absolue}")
+                dest_path_relative = os.path.relpath(
+                    fichier_path, self.dossier)
+                print(f"Fichier déplacé du répertoire surveillé vers : {dest_path_relative}")
                 self.detection.analyser_fichier_unique(fichier_path, self.extensions)
         except Exception as e:
             self.detection.error_message("Erreur lors du déplacement du fichier", fichier_name, str(e))
@@ -244,7 +249,8 @@ class SurveillanceFichier(FileSystemEventHandler):
                 elif event.event_type == 'deleted':
                     print(f"Fichier supprimé ou déplacé hors du répertoire surveillé: {fichier_name}")
                 elif event.event_type == 'moved':
-                    dest_path_relative = os.path.abspath(fichier_path, self.dossier)
+                    dest_path_relative = os.path.relpath(
+                        fichier_path, self.dossier)
                     print(f"Fichier déplacé du répertoire surveillé vers : {dest_path_relative}")
                 self.detection.analyser_fichier_unique(fichier_path, self.extensions)
         except Exception as e:
@@ -285,6 +291,43 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
         self.fichiers_dangereux = 0  # Suivre le nombre de fichiers dangereux détectés
         self.toutes_anomalies = []  # Initialiser toutes_anomalies
         
+    # Envoyez au serveur les anomalies de plusieurs fichiers
+    def envoyer_anomalies_fichiers_au_serveur(self, anomalies):
+        for anomalie in anomalies:
+            # envoyer les anomalies au serveur
+            token = os.getenv("ACCESS_TOKEN")
+            headers = {"Authorization": f"Bearer {token}"}
+            url = os.getenv("SERVER_ADDRESS") + '/' + get('VARS', 'CLIENT_ID') + '/machine/error'
+            
+            # Construction du message d'erreur
+            error_data = {
+                'type': anomalie['type'] if anomalie['type'] else 'PROBABLEMENT_SAIN',
+                'file_path': anomalie['file_path'],
+                'date': anomalie['date'].isoformat(),
+                'message': anomalie['message']
+            }
+        
+            params = {
+                "machineAddress": ':'.join(['{:02x}'.format((getnode() >> ele) & 0xff) for ele in range(0, 8 * 6, 8)][::-1]),
+            }
+
+            json_data = json.dumps(error_data)
+            response = requests.post(url, params=params, data=json_data, headers=headers)
+
+            # Vérifier la réponse
+            for _ in range(3):  # Effectuer jusqu'à 3 tentatives
+                try:
+                    if response.status_code == 201:
+                        print(f"Anomalie pour {anomalie['file_path']} a été envoyée avec succès.")
+                        break  # Sortir de la boucle en cas de succès
+                    else:
+                        print(f"Une erreur s'est produite pour {anomalie['file_path']}: {response.text}")
+                except RequestException as e:
+                    print(f"Erreur de connexion lors de l'envoi des anomalies : {str(e)}")
+            else:
+                print(f"Échec de l'envoi des anomalies pour {anomalie['file_path']} après plusieurs tentatives.")
+    
+    
     # Analyser un seul fichier dans le système
     def analyser_fichier_unique(self, file: str, extensions: list[str]) -> bool:
         try:
@@ -294,12 +337,13 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
 
             # obtenir la date et l'heure actuelle
             date = datetime.now()
+            #date = maintenant.strftime('%d/%m/%Y, %H:%M:%S')
             
             # Vérifier l'extension
             if not self.verifier_extension(extensions):
                 anomalies.append({
                     'type': 'EXTENSION',
-                    'file_path': os.path.abspath(file),
+                    'file_path': os.path.relpath(file),
                     'date': date,
                     'message': f"L'extension du fichier {file_name} ne figure pas dans la base de données de référence."
                 })
@@ -308,7 +352,7 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
             if not self.verifier_ouverture_fichier():
                 anomalies.append({
                     'type': 'OUVERTURE',
-                    'file_path': os.path.abspath(file),
+                    'file_path': os.path.relpath(file),
                     'date': date,
                     'message': f"Le fichier {file_name} ne peut pas être ouvert. Il est possible qu'il soit chiffré."
                 })
@@ -320,7 +364,7 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
             if entropie is not None and entropie > 7:
                 anomalies.append({
                     'type': 'ENTROPIE',
-                    'file_path': os.path.abspath(file),
+                    'file_path': os.path.relpath(file),
                     'date': date,
                     'message': f"Le fichier {file_name} a une haute entropie ({entropie}). Il est possible qu'il soit chiffré."
                 })
@@ -331,7 +375,7 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
             if Utilitaires.check_file_size(self.file, self.old_sizes, size_threshold):
                 anomalies.append({
                     'type': 'TAILLE',
-                    'file_path': os.path.abspath(file),
+                    'file_path': os.path.relpath(file),
                     'date': date,
                     'message': f"La taille du fichier {file_name} a changé de manière significative."
                 })
@@ -340,20 +384,20 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
             if self.check_virustotal():
                 anomalies.append({
                     'type': 'REPUTATION',
-                    'file_path': os.path.abspath(file),
+                    'file_path': os.path.relpath(file),
                     'date': date,
                     'message': f"Le fichier {file_name} est identifié comme malveillant par VirusTotal."
                 })
-                
+
             # Ajouter les anomalies détectées à toutes_anomalies
             self.toutes_anomalies.extend(anomalies)
             #print('Anomalies = ', anomalies)
             #print('Toutes anomalies =', self.toutes_anomalies)
             
-            # envoyer au serveur
-            url = os.environ.get("SERVER_ADDRESS") + '/' + get('VARS', 'CLIENT_ID') + '/machine/error'
-            self.envoyer_anomalies_fichiers_au_serveur(url)
+            # Envoyer les anomalies au serveur
+            self.envoyer_anomalies_fichiers_au_serveur(self.toutes_anomalies)
 
+            ## ----------- BONUS ---------------##
             # construire le message d'anomalie
             msg_anomalie = "\n".join([anomalie['message'] for anomalie in anomalies]) or "Le fichier est probablement sécurisé."
 
@@ -373,30 +417,6 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
         except Exception as e:
             self.alerte(f"Erreur lors de l'analyse du fichier {file}: {str(e)}")
             return False
-    
-    def envoyer_anomalies_fichiers_au_serveur(self, url):
-        for anomalie in self.toutes_anomalies:
-            # Construction du message d'erreur
-            error_data = {
-                'type': anomalie['type'],
-                'file_path': anomalie['file_path'],
-                'date': anomalie['date'],
-                'message': anomalie['message']
-            }
-        
-            params = {
-                "machineAddress": ':'.join(findall('..', '%012x' % getnode())),
-                "date": datetime.now()
-            }
-
-            json_data = json.dumps(error_data)
-            response = requests.post(url, params=params, data=json_data)
-
-            # Vérifier la réponse
-            if response.status_code == 201:
-                print(f"Anomalie pour {anomalie['file_path']} a été envoyée avec succès.")
-            else:
-                print(f"Une erreur s'est produite pour {anomalie['file_path']}: {response.text}")
         
     # Analyser les fichiers d'un dossier dans le système
     def analyser_fichiers_dossier(self, dossier: str) -> None:
@@ -407,6 +427,8 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
                 fichier_path = os.path.join(dossier_absolu, fichier)
                 if os.path.isfile(fichier_path):    # s'assurer que l'élément est un fichier et non un sous-dossier  
                     self.analyser_fichier_unique(fichier_path, self.extensions)
+                # Envoyer les anomalies au serveur
+                self.envoyer_anomalies_fichiers_au_serveur(self.toutes_anomalies)
         except Exception as e:
             self.alerte(f"Erreur lors de l'analyse des fichiers du dossier {dossier}: {str(e)}")
 
@@ -416,7 +438,7 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
             fichiers_systeme = Utilitaires.charger_fichier_systeme(dossier)
             for fichier in fichiers_systeme:
                 fichier_path = os.path.join(dossier, fichier)
-                fichier_rel_path = os.path.abspath(fichier_path, self.dossier)
+                fichier_rel_path = os.path.relpath(fichier_path, self.dossier)
 
                 if os.path.isdir(fichier_path):
                     # Analyser le sous-dossier de manière récursive
@@ -424,6 +446,8 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
                 else:
                     print(f"Analyse du fichier : {fichier_rel_path}")
                     self.analyser_fichier_unique(fichier_path, self.extensions)
+                # Envoyer les anomalies au serveur
+                self.envoyer_anomalies_fichiers_au_serveur(self.toutes_anomalies)
         except Exception as e:
             self.alerte(f"Erreur lors de l'analyse du dossier {dossier}: {str(e)}")
     
@@ -439,7 +463,10 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
                 print(f"Nombre de fichiers malveillants détectés : {self.fichiers_dangereux}")
                 if self.fichiers_dangereux > 0:
                     self.alerte("Fichiers dangereux détectés.")
-                    
+                
+                # Envoyer les anomalies au serveur
+                self.envoyer_anomalies_fichiers_au_serveur(self.toutes_anomalies)
+
                 sleep(frequence)
                 
             except Exception as e:
@@ -456,7 +483,7 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
             try:
                 # Analyser le dossier complet à chaque itération
                 self.analyser_dossier_complet(self.dossier)
-                
+
                 # Vérifier si le nombre de fichiers dangereux atteint le seuil
                 if self.fichiers_dangereux > nb_max_fichiers_dangereux:
                     print(f"Nombre de fichiers malveillants détectés : {self.fichiers_dangereux} > {nb_max_fichiers_dangereux}")
@@ -467,6 +494,9 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
                     print("Nombre maximal de fichiers dangereux atteint. Arrêt de l'analyse.")
                     break
                 
+                # Envoyer les anomalies au serveur
+                self.envoyer_anomalies_fichiers_au_serveur(self.toutes_anomalies)
+
                 sleep(frequence)
 
             except Exception as e:
@@ -497,14 +527,18 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
 
         observer.stop()  # Arrêter l'observateur après la durée spécifiée
         observer.join()
-
+        
+        
         # Appeler on_encrypted pour chaque fichier après la surveillance
         fichiers_systeme = Utilitaires.charger_fichier_systeme(self.dossier)
         for fichier in fichiers_systeme:
             fichier_path = os.path.join(self.dossier, fichier)
             event_handler.on_encrypted(fichier_path)
+            
+        # Envoyer les anomalies au serveur
+        self.envoyer_anomalies_fichiers_au_serveur(self.toutes_anomalies)
 
-        
+
 # Test
 # Fonction de timeout
 def timeout_handler(signum, frame):
@@ -597,6 +631,10 @@ def main():
 
                     detection.surveiller_no_arret(frequence, nb_iterations)
                     
+                    # Envoyer les anomalies au serveur
+                    if detection.toutes_anomalies:
+                        detection.envoyer_anomalies_fichiers_au_serveur(detection.toutes_anomalies)
+                        
                     if demander_choix("Voulez-vous continuer la surveillance ? (O/N) : ", ['o', 'n']) != 'o':
                         break
 
@@ -635,7 +673,11 @@ def main():
                             print("Veuillez entrer un nombre entier valide pour le nombre maximal de fichiers dangereux.")
 
                     detection.surveiller_arret(frequence, nb_iterations, nb_max_fichiers_dangereux)
-
+                    
+                    # Envoyer les anomalies au serveur
+                    if detection.toutes_anomalies:
+                        detection.envoyer_anomalies_fichiers_au_serveur(detection.toutes_anomalies)
+                        
                     if demander_choix("Voulez-vous continuer la surveillance ? (O/N) : ", ['o', 'n']) != 'o':
                             break
                         
