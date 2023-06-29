@@ -17,3 +17,4 @@ RansomwareProtectionSystem.iml
 /WebApp/site/package-lock.json
 /WebApp/site/build/
 /WebApp/.env
+/venv/

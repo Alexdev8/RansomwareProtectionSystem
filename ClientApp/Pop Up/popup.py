@@ -3,17 +3,8 @@ import tkinter as tk
 from PIL import Image, ImageTk
 from dotenv import load_dotenv
 import ClientApp.load_vars as vars
-
-
-
-load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
-A= os.environ.get('ACCESS_TOKEN')
-b=vars.get("VARS","CLIENT_ID")
-print(A,b)
-
-
-
-
+import ClientApp.PCRéactivation.network_interfaces_to_up as reac
+root = tk.Tk()
 
 def close_window(root):
     root.destroy()
@@ -22,12 +13,13 @@ def submit():
     global username_entry, password_entry  # Déclarer les variables en tant que globales
     username = username_entry.get()
     password = password_entry.get()
-    print("Identifiant:", username)
-    print("Mot de passe:", password)
+    if username==vars.get("VARS","CLIENT_ID") and password==os.environ.get('ACCESS_TOKEN'):
+        close_window(root)
+        close_window(connection)
+        reac.interfaces_to_up()
 
 def Message_Erreur(special_text):
     # Création de la fenêtre principale
-    root = tk.Tk()
     root.resizable(False, False)
     root.overrideredirect(True)
     root.wm_attributes("-topmost", 1)  # Garder la fenêtre au premier plan
@@ -69,7 +61,7 @@ def Message_Erreur(special_text):
     text_y = dialog_height // 2
 
     # Affichage du texte sur le canevas
-    canvas.create_text(text_x, text_y, text=special_text, fill='black', font=('Arial', 16), justify='center', width=dialog_width - 20, anchor='center',                        tags='special_text')
+    canvas.create_text(text_x, text_y, text=special_text, fill='black', font=('Arial', 16), justify='center', width=int(dialog_width * 0.8), anchor='center', tags='special_text')
 
 
 
@@ -85,9 +77,11 @@ def Message_Erreur(special_text):
     # Lancement de la boucle principale
     root.mainloop()
 
+
 def ConnectionAdmin():
-    global username_entry, password_entry
+    global connection
     connection = tk.Tk()
+    global username_entry, password_entry
     connection.resizable(True, True)
     connection.overrideredirect(True)
     connection.wm_attributes("-topmost", 1)  # Garder la fenêtre au premier plan
@@ -126,8 +120,7 @@ def ConnectionAdmin():
     connection.mainloop()
 
 
-#a=vars.get("VARS","CLIENT_ID")
-#print(a)
-# Exemple d'utilisation
+
+
 Message="Cher utilisateur,"+"\n"+"Nous souhaitons vous informer que vous semblez actuellement victime d'une attaque de ransomware, mais ne vous inquiétez pas, nous somme là pour vous aider."+"\n\n\n"+"Veuillez contacter votre administrateur"
 Message_Erreur(Message)
