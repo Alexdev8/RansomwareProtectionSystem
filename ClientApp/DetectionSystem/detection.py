@@ -34,7 +34,7 @@ class Utilitaires:
     # Afficher un message d'erreur personnalisé pour une meilleure traçabilité des erreurs
     @staticmethod
     def error_message(err_type: str, file_name: str, message: str) -> None:
-        rel_file_path = os.path.relpath(file_name)
+        rel_file_path = os.path.abspath(file_name)
         print(f"{err_type} sur {rel_file_path}: {message}")
 
     # Envoyer une alerte avec le message donnéC
@@ -226,9 +226,8 @@ class SurveillanceFichier(FileSystemEventHandler):
             if not event.is_directory:
                 fichier_path = event.src_path
                 fichier_name = os.path.basename(fichier_path)
-                dest_path_relative = os.path.relpath(
-                    fichier_path, self.dossier)
-                print(f"Fichier déplacé du répertoire surveillé vers : {dest_path_relative}")
+                dest_path_absolue = os.path.abspath(fichier_path, self.dossier)
+                print(f"Fichier déplacé du répertoire surveillé vers : {dest_path_absolue}")
                 self.detection.analyser_fichier_unique(fichier_path, self.extensions)
         except Exception as e:
             self.detection.error_message("Erreur lors du déplacement du fichier", fichier_name, str(e))
@@ -245,8 +244,7 @@ class SurveillanceFichier(FileSystemEventHandler):
                 elif event.event_type == 'deleted':
                     print(f"Fichier supprimé ou déplacé hors du répertoire surveillé: {fichier_name}")
                 elif event.event_type == 'moved':
-                    dest_path_relative = os.path.relpath(
-                        fichier_path, self.dossier)
+                    dest_path_relative = os.path.abspath(fichier_path, self.dossier)
                     print(f"Fichier déplacé du répertoire surveillé vers : {dest_path_relative}")
                 self.detection.analyser_fichier_unique(fichier_path, self.extensions)
         except Exception as e:
@@ -295,17 +293,14 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
             anomalies = []  # Liste pour stocker les anomalies détectées
 
             # obtenir la date et l'heure actuelle
-            maintenant = datetime.now()
-            date = maintenant.strftime('%d/%m/%Y')
-            heure = maintenant.strftime('%H:%M:%S')
+            date = datetime.now()
             
             # Vérifier l'extension
             if not self.verifier_extension(extensions):
                 anomalies.append({
                     'type': 'EXTENSION',
-                    'file_path': os.path.relpath(file),
+                    'file_path': os.path.abspath(file),
                     'date': date,
-                    'hours': heure,
                     'message': f"L'extension du fichier {file_name} ne figure pas dans la base de données de référence."
                 })
 
@@ -313,9 +308,8 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
             if not self.verifier_ouverture_fichier():
                 anomalies.append({
                     'type': 'OUVERTURE',
-                    'file_path': os.path.relpath(file),
+                    'file_path': os.path.abspath(file),
                     'date': date,
-                    'hours': heure,
                     'message': f"Le fichier {file_name} ne peut pas être ouvert. Il est possible qu'il soit chiffré."
                 })
 
@@ -326,9 +320,8 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
             if entropie is not None and entropie > 7:
                 anomalies.append({
                     'type': 'ENTROPIE',
-                    'file_path': os.path.relpath(file),
+                    'file_path': os.path.abspath(file),
                     'date': date,
-                    'hours': heure,
                     'message': f"Le fichier {file_name} a une haute entropie ({entropie}). Il est possible qu'il soit chiffré."
                 })
 
@@ -338,9 +331,8 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
             if Utilitaires.check_file_size(self.file, self.old_sizes, size_threshold):
                 anomalies.append({
                     'type': 'TAILLE',
-                    'file_path': os.path.relpath(file),
+                    'file_path': os.path.abspath(file),
                     'date': date,
-                    'hours': heure,
                     'message': f"La taille du fichier {file_name} a changé de manière significative."
                 })
 
@@ -348,9 +340,8 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
             if self.check_virustotal():
                 anomalies.append({
                     'type': 'REPUTATION',
-                    'file_path': os.path.relpath(file),
+                    'file_path': os.path.abspath(file),
                     'date': date,
-                    'heure': heure,
                     'message': f"Le fichier {file_name} est identifié comme malveillant par VirusTotal."
                 })
                 
@@ -359,8 +350,8 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
             #print('Anomalies = ', anomalies)
             #print('Toutes anomalies =', self.toutes_anomalies)
             
-            # envoyer au servuer
-            url = os.environ.get("SERVER_ADDRESS") + '/' + vars.get('VARS', 'CLIENT_ID') + '/machine/error'
+            # envoyer au serveur
+            url = os.environ.get("SERVER_ADDRESS") + '/' + get('VARS', 'CLIENT_ID') + '/machine/error'
             self.envoyer_anomalies_fichiers_au_serveur(url)
 
             # construire le message d'anomalie
@@ -368,8 +359,8 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
 
             # créer une nouvelle table
             table = PrettyTable()
-            table.field_names = ["Fichier", "Date", "Heure", "Anomalies"]
-            table.add_row([file_name, date, heure, msg_anomalie])
+            table.field_names = ["Fichier", "Date", "Anomalies"]
+            table.add_row([file_name, date, msg_anomalie])
 
             # afficher la table
             print(table)
@@ -390,7 +381,6 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
                 'type': anomalie['type'],
                 'file_path': anomalie['file_path'],
                 'date': anomalie['date'],
-                'hours': anomalie['hours'],
                 'message': anomalie['message']
             }
         
@@ -426,7 +416,7 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
             fichiers_systeme = Utilitaires.charger_fichier_systeme(dossier)
             for fichier in fichiers_systeme:
                 fichier_path = os.path.join(dossier, fichier)
-                fichier_rel_path = os.path.relpath(fichier_path, self.dossier)
+                fichier_rel_path = os.path.abspath(fichier_path, self.dossier)
 
                 if os.path.isdir(fichier_path):
                     # Analyser le sous-dossier de manière récursive
