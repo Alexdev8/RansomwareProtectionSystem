@@ -5,7 +5,7 @@ def is_loopback_mac(interface):
     output = subprocess.check_output(cmd, shell=True, encoding='utf-8')
     lines = output.split('\n')
     for line in lines:
-        if 'loopback' in line:
+        if 'LOOPBACK' in line:
             return True
     return False
 
