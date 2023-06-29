@@ -2,7 +2,6 @@ import os
 import signal
 import sys
 from datetime import datetime
-from re import findall
 from uuid import getnode
 
 import numpy as np
@@ -12,7 +11,6 @@ from dotenv import load_dotenv
 from hashlib import sha256
 from time import sleep, time
 
-from docx import Document
 from PyPDF2 import PdfFileReader
 from PIL import Image
 from cv2 import VideoCapture
@@ -100,7 +98,7 @@ class VerificationFichier:
     # Vérifier si le fichier donné peut s'ouvrir
     def verifier_ouverture_fichier(self) -> bool:
         extensions_connues = {
-            'docx': Document,
+            'docx': None,
             'pdf': PdfFileReader,
             'jpeg': Image.open,
             'jpg': Image.open,
@@ -135,7 +133,7 @@ class VerificationFichier:
             return True
 
         try:
-            if extension.lower() in ['txt', 'csv', 'html', 'xml', 'c', 'cpp', 'java', 'php']:
+            if extension.lower() in ['docx', 'txt', 'csv', 'html', 'xml', 'c', 'cpp', 'java', 'php']:
                 with open(self.file, 'r') as f:
                     f.read(1)
             else:
@@ -301,8 +299,8 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
             
             # Construction du message d'erreur
             error_data = {
-                'type': anomalie['type'] if anomalie['type'] else 'PROBABLEMENT_SAIN',
-                'file_path': anomalie['file_path'],
+                'type': anomalie['type'] or 'PROBABLEMENT_SAIN',
+                'path': anomalie['path'],
                 'date': anomalie['date'].isoformat(),
                 'message': anomalie['message']
             }
@@ -318,14 +316,14 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
             for _ in range(3):  # Effectuer jusqu'à 3 tentatives
                 try:
                     if response.status_code == 201:
-                        print(f"Anomalie pour {anomalie['file_path']} a été envoyée avec succès.")
+                        print(f"Anomalie pour {anomalie['path']} a été envoyée avec succès.")
                         break  # Sortir de la boucle en cas de succès
                     else:
-                        print(f"Une erreur s'est produite pour {anomalie['file_path']}: {response.text}")
+                        print(f"Une erreur s'est produite pour {anomalie['path']}: {response.text}")
                 except RequestException as e:
                     print(f"Erreur de connexion lors de l'envoi des anomalies : {str(e)}")
             else:
-                print(f"Échec de l'envoi des anomalies pour {anomalie['file_path']} après plusieurs tentatives.")
+                print(f"Échec de l'envoi des anomalies pour {anomalie['path']} après plusieurs tentatives.")
     
     
     # Analyser un seul fichier dans le système
@@ -343,7 +341,7 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
             if not self.verifier_extension(extensions):
                 anomalies.append({
                     'type': 'EXTENSION',
-                    'file_path': os.path.relpath(file),
+                    'path': os.path.relpath(file),
                     'date': date,
                     'message': f"L'extension du fichier {file_name} ne figure pas dans la base de données de référence."
                 })
@@ -352,7 +350,7 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
             if not self.verifier_ouverture_fichier():
                 anomalies.append({
                     'type': 'OUVERTURE',
-                    'file_path': os.path.relpath(file),
+                    'path': os.path.relpath(file),
                     'date': date,
                     'message': f"Le fichier {file_name} ne peut pas être ouvert. Il est possible qu'il soit chiffré."
                 })
@@ -364,7 +362,7 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
             if entropie is not None and entropie > 7:
                 anomalies.append({
                     'type': 'ENTROPIE',
-                    'file_path': os.path.relpath(file),
+                    'path': os.path.relpath(file),
                     'date': date,
                     'message': f"Le fichier {file_name} a une haute entropie ({entropie}). Il est possible qu'il soit chiffré."
                 })
@@ -375,7 +373,7 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
             if Utilitaires.check_file_size(self.file, self.old_sizes, size_threshold):
                 anomalies.append({
                     'type': 'TAILLE',
-                    'file_path': os.path.relpath(file),
+                    'path': os.path.relpath(file),
                     'date': date,
                     'message': f"La taille du fichier {file_name} a changé de manière significative."
                 })
@@ -384,7 +382,7 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
             if self.check_virustotal():
                 anomalies.append({
                     'type': 'REPUTATION',
-                    'file_path': os.path.relpath(file),
+                    'path': os.path.relpath(file),
                     'date': date,
                     'message': f"Le fichier {file_name} est identifié comme malveillant par VirusTotal."
                 })
@@ -571,7 +569,7 @@ def main():
 
         extensions = [get('FILES_EXTENSIONS', key) for key in get_keys('FILES_EXTENSIONS')]
         dossiers = [get('DOSSIERS', key) for key in get_keys('DOSSIERS')]
-        
+
         utilitaires = {}
         detections = {}
 
@@ -606,15 +604,17 @@ def main():
                 detection = detections[dossier]
 
             if mode == '1':
-                while True:
-                    if demander_choix("Voulez-vous commencer la surveillance ? (O/N) : ", ['o', 'n']) != 'o':
-                        break
-                    
-                    # Demander le nombre de paramètres à définir
+                while (
+                    demander_choix(
+                        "Voulez-vous commencer la surveillance ? (O/N) : ",
+                        ['o', 'n'],
+                    )
+                    == 'o'
+                ):
                     param_choice = int(input("Combien de paramètres voulez-vous définir (0, 1, 2) ? : "))
                     frequence = 10  # valeur par défaut
                     nb_iterations = float('inf')  # valeur par défaut
-                    
+
                     # Demander la fréquence si nécessaire
                     if param_choice >= 1:
                         try:
@@ -630,27 +630,29 @@ def main():
                             print("Veuillez entrer un nombre entier valide pour le nombre d'itérations.")
 
                     detection.surveiller_no_arret(frequence, nb_iterations)
-                    
+
                     # Envoyer les anomalies au serveur
                     if detection.toutes_anomalies:
                         detection.envoyer_anomalies_fichiers_au_serveur(detection.toutes_anomalies)
-                        
+
                     if demander_choix("Voulez-vous continuer la surveillance ? (O/N) : ", ['o', 'n']) != 'o':
                         break
 
                 print("Surveillance en temps réel sans arrêt arrêtée.")
 
             elif mode == '2':
-                while True:
-                    if demander_choix("Voulez-vous commencer la surveillance ? (O/N) : ", ['o', 'n']) != 'o':
-                        break
-                    
-                    # Demander le nombre de paramètres à définir
+                while (
+                    demander_choix(
+                        "Voulez-vous commencer la surveillance ? (O/N) : ",
+                        ['o', 'n'],
+                    )
+                    == 'o'
+                ):
                     param_choice = int(input("Combien de paramètres voulez-vous définir (0, 1, 2, 3) ? : "))
                     frequence = 10  # valeur par défaut
                     nb_iterations = float('inf')  # valeur par défaut
                     nb_max_fichiers_dangereux = 1  # valeur par défaut
-                    
+
                     # Demander la fréquence si nécessaire
                     if param_choice >= 1:
                         try:
@@ -664,7 +666,7 @@ def main():
                             nb_iterations = int(input("Combien de cycles de surveillance voulez-vous exécuter ? : "))
                         except ValueError:
                             print("Veuillez entrer un nombre entier valide pour le nombre d'itérations.")
-        
+
                     # Demander le nombre maximal de fichiers dangereux si nécessaire
                     if param_choice == 3:
                         try:
@@ -673,41 +675,39 @@ def main():
                             print("Veuillez entrer un nombre entier valide pour le nombre maximal de fichiers dangereux.")
 
                     detection.surveiller_arret(frequence, nb_iterations, nb_max_fichiers_dangereux)
-                    
+
                     # Envoyer les anomalies au serveur
                     if detection.toutes_anomalies:
                         detection.envoyer_anomalies_fichiers_au_serveur(detection.toutes_anomalies)
-                        
+
                     if demander_choix("Voulez-vous continuer la surveillance ? (O/N) : ", ['o', 'n']) != 'o':
                             break
-                        
+
                 print("Surveillance en temps réel avec arrêt arrêtée.")
 
             elif mode == '3':
-                while True:
-                    if demander_choix("Voulez-vous commencer la surveillance ? (O/N) : ", ['o', 'n']) != 'o':
-                        break
-                    
-                    # Démarrer la surveillance avec Watchdog
+                while (
+                    demander_choix(
+                        "Voulez-vous commencer la surveillance ? (O/N) : ",
+                        ['o', 'n'],
+                    )
+                    == 'o'
+                ):
                     detection.surveiller_watchdog(extensions)
-                    
+
                     if demander_choix("Voulez-vous continuer la surveillance ? (O/N) : ", ['o', 'n']) != 'o':
                             break
-        
-                print("Surveillance en temps réel avec Watchdog arrêtée.")
-
-            elif mode == '4':
                 while demander_choix("Voulez-vous commencer/continuer l'analyse d'un fichier, des fichiers d'un dossier ou d'un dossier complet ? (O/N) : ", ['o', 'n']) == 'o':
                     initial_dir = dossier
                     current_dir = dossier 
-                    
+
                     while True:
                         print(f"Répertoire courant : {current_dir}")
                         print("Contenu du répertoire :")
                         dirs_files = os.listdir(current_dir)
                         for i, item in enumerate(dirs_files, 1):
                             print(f"\t{i}. {'(d)' if os.path.isdir(os.path.join(current_dir, item)) else '(f)'} {item}")
-            
+
                         # si le répertoire courant est différent du répertoire initial, ajoutez l'option de retour
                         if current_dir != initial_dir:
                             print("\tR. Retourner au répertoire précédent")
@@ -740,7 +740,7 @@ def main():
                                 current_dir = os.path.join(current_dir, dirs_files[dir_num])
                         else:
                             print("Choix non valide.")
-                            
+
                     print("Analyse de fichier/dossier terminée.")
 
             elif mode == '5':
