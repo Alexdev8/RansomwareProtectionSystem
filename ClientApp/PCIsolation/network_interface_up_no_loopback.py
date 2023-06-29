@@ -10,7 +10,7 @@ from interface_desactivation_mac import disable_interfaces_mac
 def get_network_interfaces():
     interfaces = []
     for interface, stats in psutil.net_if_stats().items():
-        if stats.isup and interface != 'lo':
+        if stats.isup:
             interfaces.append(interface)
     return interfaces
 
