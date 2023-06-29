@@ -1,6 +1,5 @@
 import os
 import shutil
-from hashlib import sha256
 import datetime
 import requests
 import re
@@ -10,9 +9,11 @@ import ClientApp.load_vars as vars
 
 source_dir = "source_dir"
 backup_dir = "backup_dir"
-directory_to_send = "backup_dir/backup28062023140357"
+temp_dir = "temp"
+directory_to_send = "backup_dir/backup29062023144124"
 
 load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
+
 
 def full_backup(source_dir, backup_dir):
     timestamp = datetime.datetime.now().strftime("%d%m%Y%H%M%S")
@@ -65,21 +66,30 @@ def send_directory_files(directory, url):
     base_name = os.path.basename(directory)
     archive_name = f"{base_name}.zip"
     shutil.make_archive(base_name, 'zip', directory)
+    temp_archive_path = os.path.join(temp_dir, archive_name)
+
+    # Déplacer l'archive vers le dossier temporaire
+    shutil.move(archive_name, temp_archive_path)
 
     # Envoyer l'archive via sendfile
-    with open(archive_name, 'rb') as f:
+    with open(temp_archive_path, 'rb') as f:
         files = {'files': (archive_name, f, 'application/zip')}
-        response = requests.post(url, params={"machineAddress":':'.join(re.findall('..', '%012x' % uuid.getnode())), "date": datetime.datetime.now()}, files=files, headers={"Authorization": f"Bearer {os.environ.get('ACCESS_TOKEN')}"})
+        response = requests.post(url, params={"machineAddress": ':'.join(re.findall('..', '%012x' % uuid.getnode())),
+                                              "date": datetime.datetime.now()}, files=files,
+                                 headers={"Authorization": f"Bearer {os.environ.get('ACCESS_TOKEN')}"})
 
         # Traiter la réponse du serveur si nécessaire
-        if response.status_code==201:
+        if response.status_code == 201:
             print("Répertoire envoyé avec succès !")
+            # Supprimer la backup originale dans backup_dir
+            shutil.rmtree(os.path.join(backup_dir, base_name))
         else:
             print("Une erreur est survenue lors de l'envoi !")
             print("Raison : " + response.text)
 
-    # Supprimer l'archive après l'envoi
-    os.remove(archive_name)
+    # Supprimer la backup dans temp
+    os.remove(temp_archive_path)
+
 
 # full_backup(source_dir, backup_dir)
 # partial_backup(source_dir, backup_dir)

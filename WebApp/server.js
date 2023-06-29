@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require("fs");
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
+const Client = require('ssh2').Client;
 let mysql = require('mysql');
 let multer = require('multer');
 
@@ -81,6 +82,7 @@ function checkMachineToken(req, res, next) {
     }
 }
 
+// Token associé à chaque client
 function checkSessionToken(req, res, next) {
     let token = req.headers.authorization; // Récupérer le token depuis l'en-tête
     if (token && token.startsWith("Bearer ")) {
