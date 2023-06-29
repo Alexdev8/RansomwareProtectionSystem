@@ -3,8 +3,7 @@ import tkinter as tk
 from PIL import Image, ImageTk
 from dotenv import load_dotenv
 import ClientApp.load_vars as vars
-
-
+import ClientApp.PCRéactivation.network_interfaces_to_up as reac
 root = tk.Tk()
 
 def close_window(root):
@@ -17,6 +16,7 @@ def submit():
     if username==vars.get("VARS","CLIENT_ID") and password==os.environ.get('ACCESS_TOKEN'):
         close_window(root)
         close_window(connection)
+        reac.interfaces_to_up()
 
 def Message_Erreur(special_text):
     # Création de la fenêtre principale
