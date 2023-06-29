@@ -2,7 +2,12 @@ import subprocess
 
 def is_loopback_mac(interface):
     cmd = f"ifconfig {interface}"
-    return subprocess.check_output(cmd, shell=True, encoding='utf-8')
+    output = subprocess.check_output(cmd, shell=True, encoding='utf-8')
+    lines = output.split('\n')
+    for line in lines:
+        if 'loopback' in line:
+            return True
+    return False
 
 # Exemple d'utilisation
 # interface_name = 'lo0'
