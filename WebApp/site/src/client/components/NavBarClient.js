@@ -1,13 +1,13 @@
 import React from 'react';
-import '../App.css';
+import { Link } from 'react-router-dom';
+import './NavBarClient.css';
 
-export default function NavBar() {
+export default function NavBarClient() {
   return (
     <div id="nav" className="sticky-nav">
-      <a href="#dashboard">Dashboard</a>
-      <a href="#error">Erreur</a>
-      <a href="#back-up">Sauvegarde</a>
-      <a href="#profil">Profile</a>
+      <Link to="/dashboard">Dashboard</Link>
+      <Link to="/error">Erreur</Link>
+      <Link to="/profile">Profile</Link>
     </div>
   );
 }

@@ -8,7 +8,6 @@ import json
 import requests
 from dotenv import load_dotenv
 from hashlib import sha256
-from time import sleep, time
 
 from PyPDF2 import PdfFileReader
 from PIL import Image
@@ -17,7 +16,6 @@ from py_compile import compile
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from load_vars import get, get_keys
-from prettytable import PrettyTable
 from requests.exceptions import RequestException
 
 
@@ -30,7 +28,7 @@ class Utilitaires:
     # Afficher un message d'erreur personnalisé pour une meilleure traçabilité des erreurs
     @staticmethod
     def error_message(err_type: str, file_name: str, message: str) -> None:
-        rel_file_path = os.path.relpath(file_name)
+        rel_file_path = os.path.abspath(file_name)
         print(f"{err_type} sur {rel_file_path}: {message}")
 
     # Envoyer une alerte avec le message donnéC
@@ -189,6 +187,7 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
         # Suivre les changements de taille de fichier entre les appels à analyser_fichier_unique()
         self.old_sizes = {}
         self.fichiers_dangereux = 0  # Suivre le nombre de fichiers dangereux détectés
+        self.toutes_anomalies = []  # Initialiser toutes_anomalies
 
     # Envoyer au serveur les anomalies de plusieurs fichiers
     def envoyer_anomalies_fichiers_au_serveur(self, anomalies):
@@ -242,7 +241,7 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
             if not self.verifier_extension(extensions):
                 anomalies.append({
                     'type': 'EXTENSION',
-                    'path': os.path.relpath(file),
+                    'path': os.path.abspath(file),
                     'date': date,
                     'message': f"L'extension du fichier {file_name} ne figure pas dans la base de données de référence."
                 })
@@ -251,7 +250,7 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
             if not self.verifier_ouverture_fichier():
                 anomalies.append({
                     'type': 'OUVERTURE',
-                    'path': os.path.relpath(file),
+                    'path': os.path.abspath(file),
                     'date': date,
                     'message': f"Le fichier {file_name} ne peut pas être ouvert. Il est possible qu'il soit chiffré."
                 })
@@ -263,7 +262,7 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
             if entropie is not None and entropie > 7:
                 anomalies.append({
                     'type': 'ENTROPIE',
-                    'path': os.path.relpath(file),
+                    'path': os.path.abspath(file),
                     'date': date,
                     'message': f"Le fichier {file_name} a une haute entropie ({entropie}). Il est possible qu'il soit chiffré."
                 })
@@ -274,7 +273,7 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
             if Utilitaires.check_file_size(self.file, self.old_sizes, size_threshold):
                 anomalies.append({
                     'type': 'TAILLE',
-                    'path': os.path.relpath(file),
+                    'path': os.path.abspath(file),
                     'date': date,
                     'message': f"La taille du fichier {file_name} a changé de manière significative."
                 })
@@ -283,26 +282,17 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
             if self.check_virustotal():
                 anomalies.append({
                     'type': 'REPUTATION',
-                    'path': os.path.relpath(file),
+                    'path': os.path.abspath(file),
                     'date': date,
                     'message': f"Le fichier {file_name} est identifié comme malveillant par VirusTotal."
                 })
 
+            # Ajouter les anomalies détectées à toutes_anomalies
+            self.toutes_anomalies.extend(anomalies)
+
             # Envoyer les anomalies au serveur
-            self.envoyer_anomalies_fichiers_au_serveur(anomalies)
-
-            ## ----------- Affichage ---------------##
-            # construire le message d'anomalie
-            msg_anomalie = "\n".join([anomalie['message'] for anomalie in anomalies]) or "Le fichier est probablement sécurisé."
-
-            # créer une nouvelle table
-            table = PrettyTable()
-            table.field_names = ["Fichier", "Date", "Anomalies"]
-            table.add_row([file_name, date, msg_anomalie])
-
-            # afficher la table
-            print(table)
-
+            self.envoyer_anomalies_fichiers_au_serveur(self.toutes_anomalies)
+            
             # ajouter au compteur de fichier potentiellement dangereux si une ou plusieurs anomalies
             if anomalies:
                 self.fichiers_dangereux += 1
@@ -318,7 +308,7 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
             fichiers_systeme = Utilitaires.charger_fichier_systeme(dossier)
             for fichier in fichiers_systeme:
                 fichier_path = os.path.join(dossier, fichier)
-                fichier_rel_path = os.path.relpath(fichier_path, self.dossier)
+                fichier_rel_path = os.path.abspath(fichier_path, self.dossier)
 
                 if os.path.isdir(fichier_path):
                     # Analyser le sous-dossier de manière récursive
@@ -330,7 +320,7 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
             self.alerte(f"Erreur lors de l'analyse du dossier {dossier}: {str(e)}")
             
 
-def analyse() -> bool:
+def analyse() -> tuple[bool, str]:
     try:
         # Charger les variables d'environnement
         load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
@@ -354,15 +344,8 @@ def analyse() -> bool:
             detection.analyser_dossier_complet(dossier)
             print(f"Nombre de fichiers dangereux détectés dans le dossier {dossier} : {detection.fichiers_dangereux}")
                  
-        return True
+        return True, ""
              
     except KeyboardInterrupt:
-        return False
+        return False, ""
 
-    
-result, error = analyse()
-
-if result:
-    print("L'analyse a été effectuée avec succès.")
-else:
-    print(f"Une erreur s'est produite lors de l'analyse : {error}")

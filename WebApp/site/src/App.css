@@ -74,56 +74,7 @@ footer {
 
 /* Client */
 /* Dashboard */
-.red-row {
-  background-color: red;
-}
 
 /* Navbar */
-#nav {
-  display: flex;
-  justify-content: space-around;
-  padding: 15px 30px;
-  background-color: #1A237E;
-  /* Dark Blue */
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  font-family: 'Roboto', sans-serif;
-  color: white;
-}
-
-#nav a {
-  font-weight: 500;
-  color: #FFFFFF;
-  /* White */
-  text-decoration: none;
-  transition: color 0.3s ease-in-out;
-}
-
-#nav a:hover,
-#nav a:focus {
-  color: #B2DFDB;
-  /* Light Teal */
-}
-
-.sticky-nav {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-@media only screen and (max-width: 600px) {
-  #nav {
-      flex-direction: column;
-      align-items: center;
-      padding: 15px;
-  }
-}
-
-@media only screen and (min-width: 601px) and (max-width: 1024px) {
-  #nav {
-      flex-direction: row;
-      justify-content: space-around;
-      padding: 15px 30px;
-  }
-}
 
 

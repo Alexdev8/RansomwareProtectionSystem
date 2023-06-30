@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import '../App.css';
+import NavBarClient from './components/NavBarClient';
+import './dashboard.css';
 
 export default function Dashboard() {
     const [computers, setComputers] = useState([]);
     const [showForm, setShowForm] = useState(false);
     const [computerName, setComputerName] = useState('');
     const [computerSerie, setComputerSerie] = useState('');
-    const [countNonSain, setCountNonSain] = useState(0);
 
     const handleAddComputer = () => {
         setShowForm(true);
@@ -14,94 +14,65 @@ export default function Dashboard() {
 
     const handleFormSubmit = (e) => {
         e.preventDefault();
-
-        // Créer un nouvel objet pour représenter les caractéristiques de l'ordinateur
         const newComputer = {
             nserie: computerSerie,
             name: computerName,
-            state: 'sain',
+            state: 'Sain',
         };
-
-        // Ajouter le nouvel ordinateur à la liste des ordinateurs
         setComputers([...computers, newComputer]);
-        setComputerSerie([...computers, newComputer]);
-
-        // Réinitialiser les valeurs du formulaire
         setComputerName('');
         setComputerSerie('');
-
-        // Masquer le formulaire
         setShowForm(false);
+    };
+
+    const handleDeleteComputer = (index) => {
+        setComputers(computers.filter((_, i) => i !== index));
     };
 
     const handleToggleState = (index) => {
         setComputers(prevComputers => {
             const updatedComputers = [...prevComputers];
             const computer = { ...updatedComputers[index] };
-            if (computer.state === 'sain') {
-                computer.state = 'non sain';
-            } else {
-                computer.state = 'sain';
-            }
+            computer.state = computer.state === 'Sain' ? 'Non sain' : 'Sain';
             updatedComputers[index] = computer;
-
-            const nonSainCount = updatedComputers.filter(computer => computer.state === 'non sain').length;
-            setCountNonSain(nonSainCount);
-
             return updatedComputers;
         });
     };
 
     return (
         <div>
-            <h2>Nombre d'ordinateurs non sains : {countNonSain}</h2>
+            <NavBarClient />
             <button onClick={handleAddComputer}>Ajouter un ordinateur</button>
             {showForm && (
                 <form onSubmit={handleFormSubmit}>
-                    <label>N° série</label>
-                    <input
-                        type="text"
-                        value={computerSerie}
-                        onChange={(e) => setComputerName(e.target.value)}
-                    />
+                    <label>N° série:</label>
+                    <input type="text" value={computerSerie} onChange={(e) => setComputerSerie(e.target.value)} />
                     <label>Nom :</label>
-                    <input
-                        type="text"
-                        value={computerName}
-                        onChange={(e) => setComputerName(e.target.value)}
-                    />
-
+                    <input type="text" value={computerName} onChange={(e) => setComputerName(e.target.value)} />
                     <button type="submit">Ajouter</button>
                 </form>
             )}
-
             <table>
                 <thead>
                     <tr>
                         <th>N° série</th>
                         <th>Nom</th>
                         <th>État</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {computers
-                        .sort((a, b) => (a.state === 'non sain' ? -1 : 1))
-                        .map((computer, index) => (
-                            <tr
-                                key={index}
-                                className={computer.state === 'non sain' ? 'red-row' : ''}
-                            >
-                                <td>{computer.name}</td>
-                                <td>
-                                    {computer.state}
-                                </td>
-                                <td>
-                                    <button onClick={() => handleToggleState(index)}>
-                                        Changer l'état
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
+                    {computers.map((computer, index) => (
+                        <tr key={index}>
+                            <td>{computer.nserie}</td>
+                            <td>{computer.name}</td>
+                            <td>{computer.state}</td>
+                            <td>
+                                <button onClick={() => handleToggleState(index)}>Changer l'état</button>
+                                <button onClick={() => handleDeleteComputer(index)}>Supprimer</button>
+                            </td>
+                        </tr>
+                    ))}
                 </tbody>
             </table>
         </div>
