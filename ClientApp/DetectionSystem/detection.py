@@ -338,14 +338,14 @@ def analyse() -> tuple[bool, str]:
         for dossier in dossiers:
             utilitaires[dossier] = Utilitaires(dossier, extensions, api_key)
             detections[dossier] = RansomwareDetection(dossier, extensions, api_key)
-        
+
         for dossier, detection in detections.items():
             print(f"\nAnalyse du dossier : {dossier}\n")
             detection.analyser_dossier_complet(dossier)
             print(f"Nombre de fichiers dangereux détectés dans le dossier {dossier} : {detection.fichiers_dangereux}")
-                 
-        return True, ""
-             
+
+        return (True, "") if detection.fichers_dangereux != 0 else (False, "")
+    
     except KeyboardInterrupt:
         return False, ""
 
