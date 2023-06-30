@@ -210,7 +210,6 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
                 "machineAddress": ':'.join(['{:02x}'.format((getnode() >> ele) & 0xff) for ele in range(0, 8 * 6, 8)][::-1]),
             }
             
-            response = None
             # Vérifier la réponse
             for _ in range(3):  # Effectuer jusqu'à 3 tentatives
                 try:
@@ -226,7 +225,7 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
                     print(f"Erreur de connexion lors de l'envoi des anomalies : {str(e)}")
                     sleep(2)
                     
-            if response is None or response.status_code != 201:
+            if response.status_code != 201:
                 print(f"Échec de l'envoi des anomalies pour {anomalie['path']} après plusieurs tentatives.")
     
     # Analyser un seul fichier dans le système
@@ -316,9 +315,8 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
                 if os.path.isdir(fichier_path):
                     # Analyser le sous-dossier de manière récursive
                     self.analyser_dossier_complet(fichier_path)
-                else:
-                    print(f"Analyse du fichier : {fichier_abs_path}")
-                    self.analyser_fichier_unique(fichier_path, self.extensions)
+                elif self.analyser_fichier_unique(fichier_path, self.extensions):
+                    break  # Arrêter l'analyse du dossier si un fichier malveillant est détecté
         except Exception as e:
             self.alerte(f"Erreur lors de l'analyse du dossier {dossier}: {str(e)}")
             
