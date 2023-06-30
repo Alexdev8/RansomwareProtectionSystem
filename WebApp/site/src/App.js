@@ -4,6 +4,7 @@ import HomePage from './guest/views/HomePage';
 import SecurityPolicy from './guest/views/SecurityPolicy';
 import Contact from './guest/views/Contact';
 import './App.css';
+import Dashboard from './client/dashboard';
 
 export default function App() {
   return (
@@ -29,6 +30,7 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/security-policy" element={<SecurityPolicy />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/dashboard" element={<Dashboard />} />
         </Routes>
 
         <footer>

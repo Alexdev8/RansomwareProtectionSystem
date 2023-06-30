@@ -14,8 +14,8 @@ export default function HomePage() {
             <div id="app">
                 <section id="about-us">
                     <h2>Qui sommes-nous ?</h2>
-                    <img src="https://png.pngtree.com/png-vector/20190425/ourmid/pngtree-vector-info-icon-png-image_992110.jpg" alt="À propos de nous" />
-                    {/* <p>Source : Pngtree</p> */}
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/3/38/Info_Simple.svg" alt="À propos de nous" />
+                    {/* <p>Source : Wikipédia</p> */}
                     <p>
                         Nous sommes une <strong>équipe d'étudiants en troisième année à l'EFREI Paris</strong>, passionnés par
                         la <i>cybersécurité</i>. Au sein de <strong>HackFactorizz</strong>, nous nous consacrons à la <strong>protection
@@ -26,8 +26,8 @@ export default function HomePage() {
 
                 <section id="context">
                     <h2>Le contexte</h2>
-                    <img src="https://www.finance-monthly.com/Finance-Monthly/wp-content/uploads/2023/02/iStock-1393874539.jpg" alt="Contexte" />
-                    {/* <p>Source : iStock</p> */}
+                    <img src="https://www.commvault.com/wp-content/uploads/2020/12/ransomware-protection.svg" alt="Contexte" />
+                    {/* <p>Source : Commvault</p> */}
                     <p>
                         Les <strong>ransomwares</strong> sont des <em>logiciels malveillants</em> qui cryptent les données des entreprises,
                         puis exigent une rançon pour leur déchiffrement. Cette forme de <strong>cyberattaque</strong> peut avoir des conséquences
@@ -39,8 +39,8 @@ export default function HomePage() {
 
                 <section id="objective">
                     <h2>L'objectif</h2>
-                    <img src="https://t4.ftcdn.net/jpg/05/63/93/99/360_F_563939990_a6MbU00LrofyYNc8DiskvJvHwUkW4iSj.jpg" alt="Objectif" />
-                    {/* <p>Source : Adobe Stock</p> */}
+                    <img src="https://cdn1.iconfinder.com/data/icons/business-sets/512/target-512.png" alt="Objectif" />
+                    {/* <p>Source : Adobe iConfinder</p> */}
                     <p>
                         Notre objectif est de développer une <strong>solution automatique</strong> pour se prémunir contre les <strong>ransomwares</strong>. Cette solution comprend la conception et la mise en œuvre d'un <em>dispositif anti-ransomware</em> qui se caractérise par sa <strong>simplicité d'utilisation</strong> et son <strong>efficacité</strong> dans la lutte contre ces logiciels malveillants.
                     </p>
