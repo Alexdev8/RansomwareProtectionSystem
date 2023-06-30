@@ -1,8 +1,8 @@
 import psutil
 import platform
-from reactivation_interface import enable_interfaces
-from reactivation_interface_linux import enable_interfaces_linux
-from reactivation_interface_mac import enable_interfaces_mac
+from ClientApp.PCRéactivation.reactivation_interface import enable_interfaces
+from ClientApp.PCRéactivation.reactivation_interface_linux import enable_interfaces_linux
+from ClientApp.PCRéactivation.reactivation_interface_mac import enable_interfaces_mac
 
 def interfaces_to_up(interfaces_to_enable):
     system = platform.system()

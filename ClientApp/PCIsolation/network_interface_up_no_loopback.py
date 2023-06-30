@@ -17,6 +17,10 @@ def desactivation_interfaces():
     # Appel de la fonction pour obtenir les interfaces réseau
     network_interfaces = get_network_interfaces()
 
+
+# Appel de la fonction pour obtenir les interfaces réseau
+network_interfaces = get_network_interfaces()
+
     interfaces_to_disabled = []
 
     # Affichage des noms des interfaces réseau
