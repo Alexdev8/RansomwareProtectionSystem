@@ -308,13 +308,13 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
             fichiers_systeme = Utilitaires.charger_fichier_systeme(dossier)
             for fichier in fichiers_systeme:
                 fichier_path = os.path.join(dossier, fichier)
-                fichier_rel_path = os.path.abspath(fichier_path, self.dossier)
+                fichier_abs_path = os.path.abspath(fichier_path)
 
                 if os.path.isdir(fichier_path):
                     # Analyser le sous-dossier de manière récursive
                     self.analyser_dossier_complet(fichier_path)
                 else:
-                    print(f"Analyse du fichier : {fichier_rel_path}")
+                    print(f"Analyse du fichier : {fichier_abs_path}")
                     self.analyser_fichier_unique(fichier_path, self.extensions)
         except Exception as e:
             self.alerte(f"Erreur lors de l'analyse du dossier {dossier}: {str(e)}")
