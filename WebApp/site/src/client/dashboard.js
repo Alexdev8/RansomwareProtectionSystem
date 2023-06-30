@@ -5,6 +5,7 @@ export default function Dashboard() {
     const [computers, setComputers] = useState([]);
     const [showForm, setShowForm] = useState(false);
     const [computerName, setComputerName] = useState('');
+    const [computerSerie, setComputerSerie] = useState('');
     const [countNonSain, setCountNonSain] = useState(0);
 
     const handleAddComputer = () => {
@@ -16,15 +17,18 @@ export default function Dashboard() {
 
         // Créer un nouvel objet pour représenter les caractéristiques de l'ordinateur
         const newComputer = {
+            nserie: computerSerie,
             name: computerName,
             state: 'sain',
         };
 
         // Ajouter le nouvel ordinateur à la liste des ordinateurs
         setComputers([...computers, newComputer]);
+        setComputerSerie([...computers, newComputer]);
 
         // Réinitialiser les valeurs du formulaire
         setComputerName('');
+        setComputerSerie('');
 
         // Masquer le formulaire
         setShowForm(false);
@@ -54,6 +58,12 @@ export default function Dashboard() {
             <button onClick={handleAddComputer}>Ajouter un ordinateur</button>
             {showForm && (
                 <form onSubmit={handleFormSubmit}>
+                    <label>N° série</label>
+                    <input
+                        type="text"
+                        value={computerSerie}
+                        onChange={(e) => setComputerName(e.target.value)}
+                    />
                     <label>Nom :</label>
                     <input
                         type="text"
@@ -68,9 +78,9 @@ export default function Dashboard() {
             <table>
                 <thead>
                     <tr>
+                        <th>N° série</th>
                         <th>Nom</th>
                         <th>État</th>
-                        <th></th>
                     </tr>
                 </thead>
                 <tbody>

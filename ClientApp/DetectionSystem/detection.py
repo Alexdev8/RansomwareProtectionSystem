@@ -329,33 +329,6 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
         except Exception as e:
             self.alerte(f"Erreur lors de l'analyse du dossier {dossier}: {str(e)}")
             
-    # Surveiller en temps réel le système pour détecter toute activité suspecte et s'arrêter en cas de fichiers malveillants détectés
-    def surveiller_arret(self, frequence, stop, nb_max_fichiers_dangereux) -> None:
-        compteur = 0
-        while compteur < stop:
-            print(f"\n-------- Étape de détection n°{compteur + 1} ----------------")
-            self.fichiers_dangereux = 0  # réinitialiser le compteur à chaque itération
-            try:
-                # Analyser le dossier complet à chaque itération
-                self.analyser_dossier_complet(self.dossier)
-
-                # Vérifier si le nombre de fichiers dangereux atteint le seuil
-                if self.fichiers_dangereux > nb_max_fichiers_dangereux:
-                    print(f"Nombre de fichiers malveillants détectés : {self.fichiers_dangereux} > {nb_max_fichiers_dangereux}")
-                else:
-                    print(f"Nombre de fichiers malveillants détectés : {self.fichiers_dangereux} < {nb_max_fichiers_dangereux}")
-                    
-                if self.fichiers_dangereux >= nb_max_fichiers_dangereux:
-                    print("Nombre maximal de fichiers dangereux atteint. Arrêt de l'analyse.")
-                    break
-                
-                sleep(frequence)
-
-            except Exception as e:
-                self.alerte(f"Erreur système : échec lors de l'accès au journal du système. Détails de l'erreur : {e}")
-                
-            compteur += 1
-    
 
 def analyse() -> bool:
     try:
