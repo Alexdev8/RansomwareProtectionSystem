@@ -16,10 +16,10 @@ from py_compile import compile
 from time import sleep
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from load_vars import get, get_keys
+from ClientApp.load_vars import get, get_keys
 from requests.exceptions import RequestException
 
-
+nb_anomalies = 0
 class Utilitaires:
     def __init__(self, dossier: str, extensions: str, api_key: str):
         self.dossier = dossier
@@ -192,12 +192,17 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
 
     # Envoyer au serveur les anomalies de plusieurs fichiers
     def envoyer_anomalies_fichiers_au_serveur(self, anomalies):
+        # envoyer les anomalies au serveur
+        token = os.getenv("ACCESS_TOKEN")
+        headers = {"Authorization": f"Bearer {token}"}
+        url = os.getenv("SERVER_ADDRESS") + '/' + get('VARS', 'CLIENT_ID') + '/machine/error'
+
+        anomalies_envoyees = []
+
         for anomalie in anomalies:
-            # envoyer les anomalies au serveur
-            token = os.getenv("ACCESS_TOKEN")
-            headers = {"Authorization": f"Bearer {token}"}
-            url = os.getenv("SERVER_ADDRESS") + '/' + get('VARS', 'CLIENT_ID') + '/machine/error'
-            
+            if anomalie not in anomalies_envoyees:
+                continue
+
             # Construction du message d'erreur
             error_data = {
                 'type': anomalie['type'] or 'PROBABLEMENT_SAIN',
@@ -217,6 +222,7 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
                     response.raise_for_status()
                     if response.status_code == 201:
                         print(f"Anomalie pour {anomalie['path']} a été envoyée avec succès.")
+                        anomalies_envoyees.append(anomalie)
                         break 
                     else:
                         print(f"Une erreur s'est produite pour {anomalie['path']}: {response.text}")
@@ -229,7 +235,11 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
                 print(f"Échec de l'envoi des anomalies pour {anomalie['path']} après plusieurs tentatives.")
     
     # Analyser un seul fichier dans le système
-    def analyser_fichier_unique(self, file: str, extensions: list[str]) -> bool:
+    def analyser_fichier_unique(self, file: str, extensions: list[str]):
+        global nb_anomalies
+        if len(self.toutes_anomalies) != 0:
+            nb_anomalies += len(self.toutes_anomalies)
+
         try:
             ## ----------- Test ---------------##
             file_name = os.path.basename(file)
@@ -299,15 +309,19 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
             if anomalies:
                 self.fichiers_dangereux += 1
 
-            return len(anomalies) > 0
+            return True if len(anomalies) > 0 else False
         except Exception as e:
             self.alerte(f"Erreur lors de l'analyse du fichier {file}: {str(e)}")
             return False
      
     # Analyser un dossier complet dans le système
-    def analyser_dossier_complet(self, dossier: str) -> None:
+    def analyser_dossier_complet(self, dossier: str):
+        global nb_anomalies
+        if len(self.toutes_anomalies) != 0:
+            nb_anomalies += len(self.toutes_anomalies)
         try:
             fichiers_systeme = Utilitaires.charger_fichier_systeme(dossier)
+
             for fichier in fichiers_systeme:
                 fichier_path = os.path.join(dossier, fichier)
                 fichier_abs_path = os.path.abspath(fichier_path)
@@ -315,14 +329,16 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
                 if os.path.isdir(fichier_path):
                     # Analyser le sous-dossier de manière récursive
                     self.analyser_dossier_complet(fichier_path)
-                elif self.analyser_fichier_unique(fichier_path, self.extensions):
-                    break  # Arrêter l'analyse du dossier si un fichier malveillant est détecté
+                else:
+                    self.analyser_fichier_unique(fichier_path, self.extensions)
+
         except Exception as e:
             self.alerte(f"Erreur lors de l'analyse du dossier {dossier}: {str(e)}")
-            
 
 def analyse() -> tuple[bool, str]:
+    global nb_anomalies
     try:
+        nb_anomalies = 0
         # Charger les variables d'environnement
         load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
 
@@ -341,11 +357,15 @@ def analyse() -> tuple[bool, str]:
             detections[dossier] = RansomwareDetection(dossier, extensions, api_key)
 
         for dossier, detection in detections.items():
+            print("TOUTES ANOMALIES:", nb_anomalies)
+            if nb_anomalies != 0:
+                return True, ""
             print(f"\nAnalyse du dossier : {dossier}\n")
-            detection.analyser_dossier_complet(dossier)
+            result = detection.analyser_dossier_complet(dossier)
+            nb_anomalies += result if result else 0
             print(f"Nombre de fichiers dangereux détectés dans le dossier {dossier} : {detection.fichiers_dangereux}")
 
-        return (True, "") if detection.fichers_dangereux != 0 else (False, "")
+        return (True, "") if detection.fichiers_dangereux != 0 else (False, "")
     
     except KeyboardInterrupt:
         return False, ""

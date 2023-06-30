@@ -21,7 +21,7 @@ def submit():
         close_window(connection)
         interfaces_to_up(interfaces_to_enable)
 
-def Message_Erreur(interfaces):
+def message_erreur(interfaces):
     global interfaces_to_enable
     interfaces_to_enable = interfaces
     special_text="Cher utilisateur,"+"\n"+"Nous souhaitons vous informer que vous semblez actuellement victime d'une attaque de ransomware, mais ne vous inquiétez pas, nous somme là pour vous aider."+"\n\n\n"+"Veuillez contacter votre administrateur"
