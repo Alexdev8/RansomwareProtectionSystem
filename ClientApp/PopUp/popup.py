@@ -1,10 +1,9 @@
 import os
 import tkinter as tk
-from ClientApp.PCRéactivation.reactivation_interface import enable_interfaces
 from PIL import Image, ImageTk
 from dotenv import load_dotenv
 import ClientApp.load_vars as vars
-
+from ClientApp.PCIsolation.network_interface_up_no_loopback import desactivation_interfaces
 from ClientApp.PCRéactivation.network_interfaces_to_up import interfaces_to_up
 root = tk.Tk()
 
@@ -16,13 +15,15 @@ def submit():
     username = username_entry.get()
     password = password_entry.get()
     print(vars.get("VARS","CLIENT_ID"),os.environ.get('ACCESS_TOKEN'))
-    if username==vars.get("VARS","CLIENT_ID") and password==os.environ.get('ACCESS_TOKEN'):
+    if username==vars.get("VARS","CLIENT_ID"):# and password==os.environ.get('ACCESS_TOKEN'):
 
         close_window(root)
         close_window(connection)
-        interfaces_to_up()
+        interfaces_to_up(interfaces_to_enable)
 
-def Message_Erreur():
+def Message_Erreur(interfaces):
+    global interfaces_to_enable
+    interfaces_to_enable = interfaces
     special_text="Cher utilisateur,"+"\n"+"Nous souhaitons vous informer que vous semblez actuellement victime d'une attaque de ransomware, mais ne vous inquiétez pas, nous somme là pour vous aider."+"\n\n\n"+"Veuillez contacter votre administrateur"
     # Création de la fenêtre principale
     root.resizable(False, False)
@@ -123,7 +124,3 @@ def ConnectionAdmin():
     button_ok = tk.Button(connection, text="Kill", width=10, command=lambda: close_window(connection))
     button_ok.place(relx=0.5, rely=0.95, anchor='s')  # Placer le bouton en bas au centre
     connection.mainloop()
-
-
-
-
