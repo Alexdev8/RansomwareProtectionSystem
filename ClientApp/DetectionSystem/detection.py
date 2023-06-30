@@ -13,6 +13,7 @@ from PyPDF2 import PdfFileReader
 from PIL import Image
 from cv2 import VideoCapture
 from py_compile import compile
+from time import sleep
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from load_vars import get, get_keys
@@ -208,21 +209,24 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
             params = {
                 "machineAddress": ':'.join(['{:02x}'.format((getnode() >> ele) & 0xff) for ele in range(0, 8 * 6, 8)][::-1]),
             }
-
-            json_data = json.dumps(error_data)
-            response = requests.post(url, params=params, data=json_data, headers=headers)
-
+            
+            response = None
             # Vérifier la réponse
             for _ in range(3):  # Effectuer jusqu'à 3 tentatives
                 try:
+                    response = requests.post(url, params=params, data=error_data, headers=headers)
+                    response.raise_for_status()
                     if response.status_code == 201:
                         print(f"Anomalie pour {anomalie['path']} a été envoyée avec succès.")
-                        break  # Sortir de la boucle en cas de succès
+                        break 
                     else:
                         print(f"Une erreur s'est produite pour {anomalie['path']}: {response.text}")
+                        sleep(2)
                 except RequestException as e:
                     print(f"Erreur de connexion lors de l'envoi des anomalies : {str(e)}")
-            else:
+                    sleep(2)
+                    
+            if response is None or response.status_code != 201:
                 print(f"Échec de l'envoi des anomalies pour {anomalie['path']} après plusieurs tentatives.")
     
     # Analyser un seul fichier dans le système
@@ -235,7 +239,6 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
 
             # obtenir la date et l'heure actuelle
             date = datetime.now()
-            # date = maintenant.strftime('%d/%m/%Y, %H:%M:%S')
             
             # Vérifier l'extension
             if not self.verifier_extension(extensions):
