@@ -471,9 +471,15 @@ app.patch('/api/client/:clientId/machine/update', checkSessionToken,  (req, res)
     refreshConnection();
     connection.query(sql, [req.body.machineAddress, req.body.name, req.params.clientId, req.query.machineId],(err, results, fields) => {
         if (!err) {
-            res.statusCode = 201;
-            res.send(results);
-            console.log('Machine updated');
+            if (results.affectedRows !== 0) {
+                console.log('Machine updated');
+                res.statusCode = 201;
+                res.send(results);
+            }
+            else {
+                res.statusCode = 404;
+                console.log('No machine updated');
+            }
         }
         else {
             res.sendStatus(404);
