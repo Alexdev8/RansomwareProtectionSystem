@@ -37,20 +37,25 @@ function refreshConnection() {
 }
 
 function getMachineID(req, res, next) {
-    let sql = "SELECT `machineID` FROM `Machine` WHERE `machineAddress`= ?";
-    connection.query(sql, [req.query.machineAddress], (err, results, fields) => {
-        if (!err) {
-            if (results.length === 0) {
-                res.status(400).send("Cette machine n'est pas enregistrée");
-                return;
+    if (req.query.machineAddress) {
+        let sql = "SELECT `machineID` FROM `Machine` WHERE `machineAddress`= ?";
+        connection.query(sql, [req.query.machineAddress], (err, results, fields) => {
+            if (!err) {
+                if (results.length === 0) {
+                    res.status(400).send("Cette machine n'est pas enregistrée");
+                    return;
+                }
+                req.machineID = results[0].machineID.toString();
+                next();
             }
-            req.machineID = results[0].machineID.toString();
-            next();
-        }
-        else {
-            res.status(400).send("Cette machine n'est pas enregistrée pour ce client");
-        }
-    });
+            else {
+                res.status(400).send("Cette machine n'est pas enregistrée pour ce client");
+            }
+        });
+    }
+    else {
+        next()
+    }
 }
 
 function checkMachineToken(req, res, next) {
@@ -58,9 +63,10 @@ function checkMachineToken(req, res, next) {
     if (token && token.startsWith("Bearer ")) {
         // Extraire le token en supprimant le préfixe "Bearer "
         token = token.substring(7);
+        refreshConnection();
         connection.query(
-            "SELECT * FROM `Machine` WHERE token=? AND machineID=?",
-            [token, req.machineID],
+            "SELECT * FROM `Machine` WHERE token=? AND machineID=? AND clientID=?",
+            [token, req.machineID, req.params.clientId],
             (err, results) => {
                 if (err) {
                     console.error("Erreur lors de la vérification du token :", err);
@@ -88,11 +94,16 @@ function checkSessionToken(req, res, next) {
     if (token && token.startsWith("Bearer ")) {
         // Extraire le token en supprimant le préfixe "Bearer "
         token = token.substring(7);
+        refreshConnection();
         connection.query(
             "SELECT * FROM `Session` WHERE sessionToken=? AND clientID=?",
             [token, req.params.clientId],
             (err, results) => {
                 if (err) {
+                    if (err.code === "ERR_SOCKET_CONNECTION_TIMEOUT") {
+                        console.error("Erreur lors de la vérification du token : connection timeout");
+                        return res.status(500).send("Token checking timed-out");
+                    }
                     console.error("Erreur lors de la vérification du token :", err);
                     return res.sendStatus(500);
                 }
@@ -309,28 +320,8 @@ function createSessionToken(req, res) {
     });
 }
 
-function formatDateUser(date) {
-    let tdate = moment(date);
-    return tdate.format("DD/MM/YYYY");
-}
-
 function formatString(string) {
     return string.trim().toLowerCase();
-}
-
-function generateRef(use) {
-    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let refLength = 6; //62 characters used for 6 chars long ref is enough and bring theoretically 56.8B possibilities
-    let result = 'RF';
-    if (use === "hotel") {
-        refLength = 8;
-        result = 'BK';
-    }
-    for (let i = 0; i < refLength; i++) {
-        result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    //TODO tester que la ref n'existe pas déjà
-    return result;
 }
 
 function generateSecureKey(length) {
@@ -447,15 +438,62 @@ app.post('/api/client/:clientId/machine/register', checkSessionToken,  (req, res
     });
 });
 
+app.get('/api/client/:clientId/machine', checkSessionToken,  (req, res) => {
+    //get machines
+    //if the `machineId` param is specified, returns only the specified machine
+
+    let sql = "SELECT * FROM `Machine` WHERE `clientID`=? ORDER BY `name`";
+    let params = [req.params.clientId];
+
+    if (req.query.machineId) {
+        sql = "SELECT * FROM `Machine` WHERE `machineID`=? ORDER BY `name`";
+        params = [req.query.machineId];
+    }
+
+    refreshConnection();
+    connection.query(sql, params,(err, results, fields) => {
+        if (!err) {
+            res.statusCode = 200;
+            res.send(results);
+        }
+        else {
+            res.sendStatus(404);
+            return console.error('error during query: ' + err.code);
+        }
+    });
+});
+
+app.delete('/api/client/:clientId/machine/delete', checkSessionToken,  (req, res) => {
+    //delete a machine from a client account
+
+    const sql="DELETE FROM `Machine` WHERE `clientID`=? AND `machineAddress`=?";
+
+    refreshConnection();
+    connection.query(sql, [req.params.clientId, req.query.machineAddress],(err, results, fields) => {
+        if (!err) {
+            if (results.affectedRows !== 0) {
+                res.sendStatus(200);
+                console.log('Machine deleted');
+            }
+            else {
+                res.statusCode = 404;
+                console.log('No machine deleted');
+            }
+        }
+        else {
+            res.sendStatus(409);
+            return console.error('error during query: ' + err.code);
+        }
+    });
+});
+
 app.post('/api/client/:clientId/machine/error', getMachineID, checkMachineToken,  (req, res) => {
     //add a new error
 
     const sql="INSERT INTO `Error`(`machineID`, `type`, `file_path`, `date`, `message`) VALUES (?, ?, ?, ?, ?)";
-    console.log(req.body);
 
     refreshConnection();
     connection.query(sql, [req.machineID, req.body.type, req.body.path, req.body.date, req.body.message],(err, results, fields) => {
-        console.log(err);
         if (!err) {
             res.statusCode = 201;
             res.send(results);
@@ -468,7 +506,32 @@ app.post('/api/client/:clientId/machine/error', getMachineID, checkMachineToken,
     });
 });
 
-// app.get('/api/account', (req, res) => {
+app.get('/api/client/:clientId/machine/error', checkSessionToken,  (req, res) => {
+    //get errors
+    //if the `machineId` param is specified, returns only the errors of this machine
+
+    let sql = "SELECT * FROM `Error` JOIN `Machine` USING(machineID) WHERE `clientID`=? ORDER BY `Error`.`date` DESC";
+    let params = [req.params.clientId];
+
+    if (req.query.machineId) {
+        sql="SELECT * FROM `Error` WHERE `machineID`=?";
+        params = [req.query.machineId];
+    }
+
+    refreshConnection();
+    connection.query(sql, params,(err, results, fields) => {
+        if (!err) {
+            res.statusCode = 200;
+            res.send(results);
+        }
+        else {
+            res.sendStatus(404);
+            return console.error('error during query: ' + err.code);
+        }
+    });
+});
+
+// app.get('/api/client', (req, res) => {
 
 //     //get account information by email
 //
@@ -592,41 +655,6 @@ app.post('/api/client/login', (req, res, next) => {
     });
     }, createSessionToken
 );
-
-//
-// app.patch('/api/account/update', (req, res) => {
-//     //update a json type account object in the database
-//
-//     let updateData = req.body;
-//     console.log(updateData);
-//     console.log(req.query.email);
-//
-//     const sql="UPDATE `Accounts` SET " + formatString(updateData.key) + "= ? WHERE `email`= ?";
-//
-//     refreshConnection();
-//     switch (updateData.key) {
-//         case "birthDate":
-//             updateData.value = formatDateServer(updateData.value);
-//             console.log(updateData.value);
-//             break;
-//         default:
-//             updateData.value = formatString(updateData.value);
-//     }
-//     connection.query(sql, [updateData.value, req.query.email], (err, results, fields) => {
-//         if (!err) {
-//             res.statusCode = 200;
-//             res.send(results);
-//             console.log('Result sent');
-//         }
-//         else {
-//             if (err.code !== "ER_PARSE_ERROR") {
-//                 res.statusCode = 404;
-//                 res.send("This account doesn't exist");
-//                 return console.error('No such account exist: ' + err.code);
-//             }
-//         }
-//     });
-// });
 
 app.get('/api/*', (req, res) => {
     res.send("Ransomware Protection System (RPS) API endpoint\nStatus: " + connection.state);
