@@ -321,7 +321,7 @@ function createSessionToken(req, res) {
 }
 
 function formatString(string) {
-    return string.trim().toLowerCase();
+    return string.trim();
 }
 
 function generateSecureKey(length) {
@@ -391,13 +391,13 @@ app.post('/api/client/:clientId/backup/push', getMachineID, checkMachineToken, c
     });
 });
 
-app.get('/api/client/:clientId/backup/:backupID/download', checkSessionToken, (req, res, next) => {
+app.get('/api/client/:clientId/backup/:backupId/download', checkSessionToken, (req, res, next) => {
     //download d'un backup
 
     const sql="SELECT `machineID`, `fileName` FROM `Backup` WHERE `backupID`=?";
 
     let clientID = req.params.clientId;
-    let backupID = req.params.backupID;
+    let backupID = req.params.backupId;
 
     refreshConnection();
     connection.query(sql, [backupID], (err, results, fields) => {
@@ -463,13 +463,38 @@ app.get('/api/client/:clientId/machine', checkSessionToken,  (req, res) => {
     });
 });
 
+app.get('/api/client/:clientId/machine/:machineId/backup', checkSessionToken,  (req, res) => {
+    //get machine backups
+    //if the `backupId` param is specified, returns only the specified backup
+
+    let sql = "SELECT * FROM `Backup` WHERE `machineID`=? ORDER BY `backupDate` DESC";
+    let params = [req.params.machineId];
+
+    if (req.query.backupId) {
+        sql = "SELECT * FROM `Backup` WHERE `machineID`=? AND `backupID`=?";
+        params = [req.params.machineId, req.query.backupId];
+    }
+
+    refreshConnection();
+    connection.query(sql, params,(err, results, fields) => {
+        if (!err) {
+            res.statusCode = 200;
+            res.send(results);
+        }
+        else {
+            res.sendStatus(404);
+            return console.error('error during query: ' + err.code);
+        }
+    });
+});
+
 app.patch('/api/client/:clientId/machine/update', checkSessionToken,  (req, res) => {
     //add a new machine to a client account
 
     const sql="UPDATE `Machine` SET `machineAddress`=?, `name`=? WHERE `clientID`=? AND `machineID`=?";
 
     refreshConnection();
-    connection.query(sql, [req.body.machineAddress, req.body.name, req.params.clientId, req.query.machineId],(err, results, fields) => {
+    connection.query(sql, [formatString(req.body.machineAddress), formatString(req.body.name), req.params.clientId, req.query.machineId],(err, results, fields) => {
         if (!err) {
             if (results.affectedRows !== 0) {
                 console.log('Machine updated');
@@ -552,30 +577,6 @@ app.get('/api/client/:clientId/machine/error', checkSessionToken,  (req, res) =>
         else {
             res.sendStatus(404);
             return console.error('error during query: ' + err.code);
-        }
-    });
-});
-
-app.get('/api/client/:clientId', checkSessionToken, (req, res) => {
-    //get account data
-
-    const sql="SELECT `clientID`, `email`, `firstName`, `lastName`, `phone`, `company`, `subscription` FROM `Client` WHERE `clientID`=?";
-
-    refreshConnection();
-    connection.query(sql, [req.params.clientId],(err, results, fields) => {
-        if (!err) {
-            if (results.length !== 0) {
-                res.status(200).send(results[0]);
-            }
-            else {
-                res.statusCode = 404;
-                res.send("This account doesn't exist");
-            }
-        }
-        else {
-            res.statusCode = 404;
-            res.send("This account doesn't exist");
-            return console.error('error during query: ' + err.message);
         }
     });
 });
@@ -675,8 +676,31 @@ app.post('/api/client/login', (req, res, next) => {
             res.send("This account doesn't exist");
         }
     });
-    }, createSessionToken
-);
+}, createSessionToken);
+
+app.get('/api/client/:clientId', checkSessionToken, (req, res) => {
+    //get account data
+
+    const sql="SELECT `clientID`, `email`, `firstName`, `lastName`, `phone`, `company`, `subscription` FROM `Client` WHERE `clientID`=?";
+
+    refreshConnection();
+    connection.query(sql, [req.params.clientId],(err, results, fields) => {
+        if (!err) {
+            if (results.length !== 0) {
+                res.status(200).send(results[0]);
+            }
+            else {
+                res.statusCode = 404;
+                res.send("This account doesn't exist");
+            }
+        }
+        else {
+            res.statusCode = 404;
+            res.send("This account doesn't exist");
+            return console.error('error during query: ' + err.message);
+        }
+    });
+});
 
 app.get('/api/*', (req, res) => {
     res.send("Ransomware Protection System (RPS) API endpoint\nStatus: " + connection.state);
