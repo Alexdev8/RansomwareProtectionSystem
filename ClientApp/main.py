@@ -15,7 +15,7 @@ else:
         print(result)
         if result[0]:
             print(result[1])
-            message_erreur(desactivation_interfaces())
+            message_erreur(desactivation_interfaces(),"Mettre ici le message du code d'erreur")
         else:
             pass
         time.sleep(int(vars.get("VARS", "ANALYSE_FREQUENCY")))
