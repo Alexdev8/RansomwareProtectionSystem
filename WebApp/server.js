@@ -463,13 +463,32 @@ app.get('/api/client/:clientId/machine', checkSessionToken,  (req, res) => {
     });
 });
 
+app.patch('/api/client/:clientId/machine/update', checkSessionToken,  (req, res) => {
+    //add a new machine to a client account
+
+    const sql="UPDATE `Machine` SET `machineAddress`=?, `name`=? WHERE `clientID`=? AND `machineID`=?";
+
+    refreshConnection();
+    connection.query(sql, [req.body.machineAddress, req.body.name, req.params.clientId, req.query.machineId],(err, results, fields) => {
+        if (!err) {
+            res.statusCode = 201;
+            res.send(results);
+            console.log('Machine updated');
+        }
+        else {
+            res.sendStatus(404);
+            return console.error('error during query: ' + err.code);
+        }
+    });
+});
+
 app.delete('/api/client/:clientId/machine/delete', checkSessionToken,  (req, res) => {
     //delete a machine from a client account
 
-    const sql="DELETE FROM `Machine` WHERE `clientID`=? AND `machineAddress`=?";
+    const sql="DELETE FROM `Machine` WHERE `clientID`=? AND `machineID`=?";
 
     refreshConnection();
-    connection.query(sql, [req.params.clientId, req.query.machineAddress],(err, results, fields) => {
+    connection.query(sql, [req.params.clientId, req.query.machineId],(err, results, fields) => {
         if (!err) {
             if (results.affectedRows !== 0) {
                 res.sendStatus(200);
@@ -531,32 +550,29 @@ app.get('/api/client/:clientId/machine/error', checkSessionToken,  (req, res) =>
     });
 });
 
-// app.get('/api/client', (req, res) => {
+app.get('/api/client/:clientId', checkSessionToken, (req, res) => {
+    //get account data
 
-//     //get account information by email
-//
-//     const sql="SELECT `accountID`, `firstName`, `lastName`, `email`, `birthDate`, `phoneNumber`, `newsLetterSubscription` FROM `Accounts` WHERE email= ?";
-//
-//     refreshConnection();
-//     connection.query(sql, [req.query.email],(err, results, fields) => {
-//         if (!err) {
-//             if (results.length !== 0) {
-//                 results[0].birthDate = formatDateUser(results[0].birthDate);
-//                 res.send(results[0]);
-//                 console.log('Result sent');
-//             }
-//             else {
-//                 res.statusCode = 404;
-//                 res.send("This account doesn't exist");
-//             }
-//         }
-//         else {
-//             res.statusCode = 404;
-//             res.send("This account doesn't exist");
-//             return console.error('error during query: ' + err.message);
-//         }
-//     });
-// });
+    const sql="SELECT `clientID`, `email`, `firstName`, `lastName`, `phone`, `company`, `subscription` FROM `Client` WHERE `clientID`=?";
+
+    refreshConnection();
+    connection.query(sql, [req.params.clientId],(err, results, fields) => {
+        if (!err) {
+            if (results.length !== 0) {
+                res.status(200).send(results[0]);
+            }
+            else {
+                res.statusCode = 404;
+                res.send("This account doesn't exist");
+            }
+        }
+        else {
+            res.statusCode = 404;
+            res.send("This account doesn't exist");
+            return console.error('error during query: ' + err.message);
+        }
+    });
+});
 
 // Creation de client
 app.post('/api/client/register', (req, res) => {
