@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require("fs");
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
+const cron = require("node-cron");
 const Client = require('ssh2').Client;
 let mysql = require('mysql');
 let multer = require('multer');
@@ -25,6 +26,14 @@ connection.on('error', function onError(err) {
     console.log('db error', err);
     throw err;
 });
+
+cron.schedule('*/5 * * * * *', () => {
+    console.log('Tâche exécutée toutes les 5s');
+    // Effectuez ici les actions que vous souhaitez effectuer régulièrement
+}, {
+    scheduled: true,
+    timezone: "Europe/Paris"
+})
 
 function refreshConnection() {
     if(connection.state !== "authenticated") {

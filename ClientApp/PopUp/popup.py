@@ -128,7 +128,7 @@ def ConnectionAdmin():
     global username_entry, password_entry
     connection.wm_attributes("-topmost", 1)  # Garder la fenêtre au premier plan
     connection.title("Connexion Administrateur")
-    connection.iconphoto(False,tk.PhotoImage(file="RPS.png"))
+
     # Calcul des dimensions pour la taille de la fenêtre
     screen_width = connection.winfo_screenwidth()
     screen_height = connection.winfo_screenheight()
