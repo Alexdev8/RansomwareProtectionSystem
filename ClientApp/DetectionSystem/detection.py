@@ -16,9 +16,9 @@ from cv2 import VideoCapture
 from py_compile import compile
 from time import sleep
 
-#from ClientApp.load_vars import get, get_keys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from load_vars import get, get_keys
+from ClientApp.load_vars import get, get_keys
+#sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+#from load_vars import get, get_keys
 from requests.exceptions import RequestException
 
 nb_anomalies = 0
