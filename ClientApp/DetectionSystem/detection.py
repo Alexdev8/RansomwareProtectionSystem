@@ -16,9 +16,9 @@ from cv2 import VideoCapture
 from py_compile import compile
 from time import sleep
 
-from ClientApp.load_vars import get, get_keys
-#sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-#from load_vars import get, get_keys
+#from ClientApp.load_vars import get, get_keys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from load_vars import get, get_keys
 from requests.exceptions import RequestException
 
 nb_anomalies = 0
@@ -98,7 +98,7 @@ class VerificationFichier:
             'pdf': PdfFileReader,
             'jpeg': Image.open,
             'jpg': Image.open,
-            'png': Image.open,
+            'png': None,
             'txt': None,
             'csv': None,
             'xlsx': None,
@@ -340,7 +340,7 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
                     self.analyser_fichier_unique(fichier_path, self.extensions)
                     
                 for anomalie in self.toutes_anomalies:
-                    if anomalie['path'] == fichier_abs_path:
+                    if anomalie['path']:
                         print(f"Type d'anomalie : {anomalie['type']}")
                         print(f"Chemin absolu du fichier concerné : {fichier_abs_path}")
 
@@ -367,7 +367,7 @@ def analyse() -> tuple[bool, str]:
         else:  # Mac/Linux
             dotenv_path = os.path.join(os.path.expanduser("~"), '.env')
 
-        load_dotenv(dotenv_path)    
+        load_dotenv(dotenv_path, encoding='utf-8')    
 
         # Charger l'API VirusTotal du .env
         api_key = os.getenv("API_KEY_VIRUS_TOTAL") or "default_value"
@@ -382,7 +382,7 @@ def analyse() -> tuple[bool, str]:
         for dossier in dossiers:
             utilitaires[dossier] = Utilitaires(dossier, extensions, api_key)
             detections[dossier] = RansomwareDetection(dossier, extensions, api_key)
-
+            
         for dossier, detection in detections.items():
             if nb_anomalies != 0:
                 return True, ""
@@ -424,7 +424,6 @@ def analyse() -> tuple[bool, str]:
             print(f"\nAnalyse du dossier : {dossier}\n")
             result = detection.analyser_dossier_complet(dossier)
             nb_anomalies += result or 0
-            print(f"")
             print(f"Nombre de fichiers dangereux détectés dans le dossier {dossier} : {detection.fichiers_dangereux}")
 
         return (True, "") if detection.fichiers_dangereux != 0 else (False, "")
