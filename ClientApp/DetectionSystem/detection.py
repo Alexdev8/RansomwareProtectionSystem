@@ -16,9 +16,9 @@ from cv2 import VideoCapture
 from py_compile import compile
 from time import sleep
 
-from ClientApp.load_vars import get, get_keys
-#sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-#from load_vars import get, get_keys
+#from ClientApp.load_vars import get, get_keys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from load_vars import get, get_keys
 from requests.exceptions import RequestException
 
 nb_anomalies = 0
@@ -94,11 +94,12 @@ class VerificationFichier:
     # Vérifier si le fichier donné peut s'ouvrir
     def verifier_ouverture_fichier(self) -> bool:
         extensions_connues = {
+            'odt': None,
             'docx': None,
             'pdf': PdfFileReader,
             'jpeg': Image.open,
             'jpg': Image.open,
-            'png': None,
+            'png': Image.open,
             'txt': None,
             'csv': None,
             'xlsx': None,
@@ -129,7 +130,7 @@ class VerificationFichier:
             return True
 
         try:
-            if extension.lower() in ['docx', 'txt', 'csv', 'html', 'xml', 'c', 'cpp', 'java', 'php']:
+            if extension.lower() in ['odt', 'docx', 'txt', 'csv', 'html', 'xml', 'c', 'cpp', 'java', 'php']:
                 with open(self.file, 'r') as f:
                     f.read(1)
             else:
@@ -138,24 +139,94 @@ class VerificationFichier:
         except Exception:
             return False
 
-    # Calculer l'entropie d'un fichier avec la formule de l'entropie de Shannon :   H(X) = -Σ [P(x) log2 P(x)]
+    # Méthode pour calculer l'entropie d'un fichier
     def calc_entropie(self) -> float:
         try:
-            with open(self.file, 'rb') as f:
-                data = np.frombuffer(f.read(), dtype=np.uint8)
-            if not data.size:
-                return 0
-            counts = np.bincount(data)
-            # Calculez la probabilité d'occurrence
-            probabilities = counts / data.size
-            # Remplacez les valeurs de probabilité nulles par un très petit nombre pour éviter la division par zéro
-            probabilities[probabilities == 0] = 1e-10
-            # Calculez l'entropie
-            return -np.sum(probabilities * np.log2(probabilities))
+            _, extension = os.path.splitext(self.file)
+            extension = extension[1:].lower()
+
+            if extension == 'png':
+                return self.calculer_entropie_png(self.file)
+            elif extension == 'pdf':
+                return self.calculer_entropie_pdf(self.file)
+            elif extension in ['jpeg', 'jpg', 'gif']:
+                return self.calculer_entropie_image(self.file)
+            elif extension in ['txt', 'py', 'c', 'cpp', 'sh']:
+                return self.calculer_entropie_texte(self.file)
+            else:
+                return self._extracted_from_calc_entropie_16()
         except Exception as e:
             # print(f"Erreur lors du calcul de l'entropie pour {self.file} : {e}")
             return None
 
+    # TODO Rename this here and in `calc_entropie`
+    def _extracted_from_calc_entropie_16(self):
+        # Pour les autres extensions, utilisez l'implémentation existante
+        with open(self.file, 'rb') as f:
+            data = np.frombuffer(f.read(), dtype=np.uint8)
+        if not data.size:
+            return 0
+        counts = np.bincount(data)
+        return self._extracted_from_calculer_entropie_image_9(counts, data)
+        
+    # Méthode pour calculer l'entropie d'une image (JPEG, JPG, GIF)
+    def calculer_entropie_image(self, fichier: str) -> float:
+        try:
+            image = Image.open(fichier)
+            image_data = np.array(image)
+            if image_data.size == 0:
+                return 0
+
+            counts = np.bincount(image_data.flatten())
+            return self._extracted_from_calculer_entropie_image_9(counts, image_data)
+        except Exception as e:
+            print(f"Erreur lors du calcul de l'entropie pour le fichier d'image {fichier}: {str(e)}")
+            return None
+
+    # TODO Rename this here and in `_extracted_from_calc_entropie_16` and `calculer_entropie_image`
+    def _extracted_from_calculer_entropie_image_9(self, counts, arg1):
+        probabilities = counts / arg1.size
+        probabilities[probabilities == 0] = 1e-10
+        return -np.sum(probabilities * np.log2(probabilities))
+
+    # Méthode pour calculer l'entropie d'un fichier PDF
+    def calculer_entropie_pdf(self, fichier: str) -> float:
+        try:
+            pdf = PdfFileReader(fichier)
+            total_bytes = 0
+
+            # Parcours de chaque page du PDF
+            for page_num in range(pdf.numPages):
+                page = pdf.getPage(page_num)
+                content = page.extractText().encode('utf-8')
+                total_bytes += len(content)
+
+            # Calcul de l'entropie
+            counts = np.bincount(np.frombuffer(content, dtype=np.uint8))
+            probabilities = counts / total_bytes
+            probabilities[probabilities == 0] = 1e-10
+
+            return -np.sum(probabilities * np.log2(probabilities))
+        except Exception as e:
+            print(f"Erreur lors du calcul de l'entropie pour le fichier PDF {fichier}: {str(e)}")
+            return None
+        
+    # Méthode pour calculer l'entropie d'un fichier texte
+    def calculer_entropie_texte(self, fichier: str) -> float:
+        try:
+            with open(fichier, 'r') as f:
+                content = f.read().encode('utf-8')
+
+            counts = np.bincount(np.frombuffer(content, dtype=np.uint8))
+            probabilities = counts / len(content)
+            probabilities[probabilities == 0] = 1e-10
+
+            return -np.sum(probabilities * np.log2(probabilities))
+        except Exception as e:
+            print(f"Erreur lors du calcul de l'entropie pour le fichier texte {fichier}: {str(e)}")
+            return None
+    
+    
     # Analyser la réputation des fichiers avec VirusTotal
     # - Méthode pour obtenir le hash du fichier
     def get_file_hash(self) -> str:
@@ -281,7 +352,7 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
         if not self.file:
             return False  # Ignorer si le fichier est vide
         entropie = self.calc_entropie()
-        if entropie is not None and entropie > 7:
+        if entropie is not None and entropie > 8:
             anomalies.append({
                 'type': 'ENTROPIE',
                 'path': str(pathlib.Path(file).resolve()),
