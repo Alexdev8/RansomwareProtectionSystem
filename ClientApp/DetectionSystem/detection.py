@@ -15,11 +15,11 @@ from cv2 import VideoCapture
 from py_compile import compile
 from time import sleep
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from ClientApp.load_vars import get, get_keys
 from requests.exceptions import RequestException
 
 nb_anomalies = 0
+
 class Utilitaires:
     def __init__(self, dossier: str, extensions: str, api_key: str):
         self.dossier = dossier
@@ -28,14 +28,13 @@ class Utilitaires:
 
     # Afficher un message d'erreur personnalisé pour une meilleure traçabilité des erreurs
     @staticmethod
-    def error_message(err_type: str, file_name: str, message: str) -> None:
+    def error_message(err_type: str, file_name: str, message: str):
         rel_file_path = os.path.abspath(file_name)
         print(f"{err_type} sur {rel_file_path}: {message}")
 
     # Envoyer une alerte avec le message donnéC
-    def alerte(self, message: str) -> None:
-        print(
-            f"Alerte de sécurité : {message}. L'administrateur a été notifié.")
+    def alerte(self, message: str):
+        print(f"Alerte de sécurité : {message}. L'administrateur a été notifié.")
 
     # Charger tous les fichiers du système à partir du dossier spécifié
     @staticmethod
@@ -189,13 +188,14 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
         self.old_sizes = {}
         self.fichiers_dangereux = 0  # Suivre le nombre de fichiers dangereux détectés
         self.toutes_anomalies = []  # Initialiser toutes_anomalies
+        self.fichiers_dangereux_detectes = False  
 
     # Envoyer au serveur les anomalies de plusieurs fichiers
     def envoyer_anomalies_fichiers_au_serveur(self, anomalies):
         # envoyer les anomalies au serveur
         token = os.getenv("ACCESS_TOKEN")
         headers = {"Authorization": f"Bearer {token}"}
-        url = os.getenv("SERVER_ADDRESS") + '/' + get('VARS', 'CLIENT_ID') + '/machine/error'
+        url = (os.getenv("SERVER_ADDRESS") or "default_value") + '/' + get('VARS', 'CLIENT_ID') + '/machine/error'
 
         anomalies_envoyees = []
 
@@ -241,78 +241,83 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
             nb_anomalies += len(self.toutes_anomalies)
 
         try:
-            ## ----------- Test ---------------##
-            file_name = os.path.basename(file)
-            self.file = file  # Définir le fichier à analyser
-            anomalies = []  # Liste pour stocker les anomalies détectées
-
-            # obtenir la date et l'heure actuelle
-            date = datetime.now()
-            
-            # Vérifier l'extension
-            if not self.verifier_extension(extensions):
-                anomalies.append({
-                    'type': 'EXTENSION',
-                    'path': os.path.abspath(file),
-                    'date': date,
-                    'message': f"L'extension du fichier {file_name} ne figure pas dans la base de données de référence."
-                })
-
-            # Vérifier si le fichier peut être ouvert
-            if not self.verifier_ouverture_fichier():
-                anomalies.append({
-                    'type': 'OUVERTURE',
-                    'path': os.path.abspath(file),
-                    'date': date,
-                    'message': f"Le fichier {file_name} ne peut pas être ouvert. Il est possible qu'il soit chiffré."
-                })
-
-            # Vérifier l'entropie du fichier
-            if not self.file:
-                return False  # Ignorer si le fichier est vide
-            entropie = self.calc_entropie()
-            if entropie is not None and entropie > 7:
-                anomalies.append({
-                    'type': 'ENTROPIE',
-                    'path': os.path.abspath(file),
-                    'date': date,
-                    'message': f"Le fichier {file_name} a une haute entropie ({entropie}). Il est possible qu'il soit chiffré."
-                })
-
-            # Vérifier les changements significatifs de taille de fichier
-            # La taille de fichier doit changer de plus de 1000 octets = 1 ko pour déclencher une alerte
-            size_threshold = 1000
-            if Utilitaires.check_file_size(self.file, self.old_sizes, size_threshold):
-                anomalies.append({
-                    'type': 'TAILLE',
-                    'path': os.path.abspath(file),
-                    'date': date,
-                    'message': f"La taille du fichier {file_name} a changé de manière significative."
-                })
-
-            # Vérifier la réputation du fichier
-            if self.check_virustotal():
-                anomalies.append({
-                    'type': 'REPUTATION',
-                    'path': os.path.abspath(file),
-                    'date': date,
-                    'message': f"Le fichier {file_name} est identifié comme malveillant par VirusTotal."
-                })
-
-            # Ajouter les anomalies détectées à toutes_anomalies
-            self.toutes_anomalies.extend(anomalies)
-
-            # Envoyer les anomalies au serveur
-            self.envoyer_anomalies_fichiers_au_serveur(self.toutes_anomalies)
-            
-            # ajouter au compteur de fichier potentiellement dangereux si une ou plusieurs anomalies
-            if anomalies:
-                self.fichiers_dangereux += 1
-
-            return True if len(anomalies) > 0 else False
+            return self._extracted_from_analyser_fichier_unique_8(file, extensions)
         except Exception as e:
             self.alerte(f"Erreur lors de l'analyse du fichier {file}: {str(e)}")
             return False
+
+    # TODO Rename this here and in `analyser_fichier_unique`
+    def _extracted_from_analyser_fichier_unique_8(self, file, extensions):
+        ## ----------- Test ---------------##
+        file_name = os.path.basename(file)
+        self.file = file  # Définir le fichier à analyser
+        anomalies = []  # Liste pour stocker les anomalies détectées
+
+        # obtenir la date et l'heure actuelle
+        date = datetime.now()
+
+        # Vérifier l'extension
+        if not self.verifier_extension(extensions):
+            anomalies.append({
+                'type': 'EXTENSION',
+                'path': os.path.abspath(file),
+                'date': date,
+                'message': f"L'extension du fichier {file_name} ne figure pas dans la base de données de référence."
+            })
+
+        # Vérifier si le fichier peut être ouvert
+        if not self.verifier_ouverture_fichier():
+            anomalies.append({
+                'type': 'OUVERTURE',
+                'path': os.path.abspath(file),
+                'date': date,
+                'message': f"Le fichier {file_name} ne peut pas être ouvert. Il est possible qu'il soit chiffré."
+            })
+
+        # Vérifier l'entropie du fichier
+        if not self.file:
+            return False  # Ignorer si le fichier est vide
+        entropie = self.calc_entropie()
+        if entropie is not None and entropie > 7:
+            anomalies.append({
+                'type': 'ENTROPIE',
+                'path': os.path.abspath(file),
+                'date': date,
+                'message': f"Le fichier {file_name} a une haute entropie ({entropie}). Il est possible qu'il soit chiffré."
+            })
+
+        # Vérifier les changements significatifs de taille de fichier
+        # La taille de fichier doit changer de plus de 1000 octets = 1 ko pour déclencher une alerte
+        size_threshold = 1000
+        if Utilitaires.check_file_size(self.file, self.old_sizes, size_threshold):
+            anomalies.append({
+                'type': 'TAILLE',
+                'path': os.path.abspath(file),
+                'date': date,
+                'message': f"La taille du fichier {file_name} a changé de manière significative."
+            })
+
+        # Vérifier la réputation du fichier
+        if self.check_virustotal():
+            anomalies.append({
+                'type': 'REPUTATION',
+                'path': os.path.abspath(file),
+                'date': date,
+                'message': f"Le fichier {file_name} est identifié comme malveillant par VirusTotal."
+            })
+
+        # Ajouter les anomalies détectées à toutes_anomalies
+        self.toutes_anomalies.extend(anomalies)
+
+        # Envoyer les anomalies au serveur
+        self.envoyer_anomalies_fichiers_au_serveur(self.toutes_anomalies)
+
+        # ajouter au compteur de fichier potentiellement dangereux si une ou plusieurs anomalies
+        if anomalies:
+            self.fichiers_dangereux += 1
+            self.fichiers_dangereux_detectes = True
+
+        return len(anomalies) > 0
      
     # Analyser un dossier complet dans le système
     def analyser_dossier_complet(self, dossier: str):
@@ -327,11 +332,16 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
                 fichier_abs_path = os.path.abspath(fichier_path)
 
                 if os.path.isdir(fichier_path):
-                    # Analyser le sous-dossier de manière récursive
                     self.analyser_dossier_complet(fichier_path)
                 else:
                     self.analyser_fichier_unique(fichier_path, self.extensions)
 
+                # Ajouter la vérification pour arrêter l'analyse si des fichiers dangereux ont été détectés
+                if self.fichiers_dangereux_detectes:
+                    break
+
+            return self.fichiers_dangereux_detectes
+        
         except Exception as e:
             self.alerte(f"Erreur lors de l'analyse du dossier {dossier}: {str(e)}")
 
@@ -343,7 +353,7 @@ def analyse() -> tuple[bool, str]:
         load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
 
         # Charger l'API VirusTotal du .env
-        api_key = os.getenv("API_KEY_VIRUS_TOTAL")
+        api_key = os.getenv("API_KEY_VIRUS_TOTAL") or "default_value"
 
         extensions = [get('FILES_EXTENSIONS', key) for key in get_keys('FILES_EXTENSIONS')]
         dossiers = [get('DOSSIERS', key) for key in get_keys('DOSSIERS')]
@@ -362,11 +372,69 @@ def analyse() -> tuple[bool, str]:
                 return True, ""
             print(f"\nAnalyse du dossier : {dossier}\n")
             result = detection.analyser_dossier_complet(dossier)
-            nb_anomalies += result if result else 0
+            nb_anomalies += result or 0
             print(f"Nombre de fichiers dangereux détectés dans le dossier {dossier} : {detection.fichiers_dangereux}")
 
         return (True, "") if detection.fichiers_dangereux != 0 else (False, "")
     
-    except KeyboardInterrupt:
-        return False, ""
+    except Exception as e:
+        return False, str(e)
 
+
+def analyse() -> tuple[bool, str]:
+    global nb_anomalies
+    try:
+        nb_anomalies = 0
+        # Charger les variables d'environnement
+        load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
+
+        # Charger l'API VirusTotal du .env
+        api_key = os.getenv("API_KEY_VIRUS_TOTAL") or "default_value"
+
+        extensions = [get('FILES_EXTENSIONS', key) for key in get_keys('FILES_EXTENSIONS')]
+        dossiers = [get('DOSSIERS', key) for key in get_keys('DOSSIERS')]
+
+        utilitaires = {}
+        detections = {}
+
+        # Initialiser la base de données pour chaque dossier
+        for dossier in dossiers:
+            utilitaires[dossier] = Utilitaires(dossier, extensions, api_key)
+            detections[dossier] = RansomwareDetection(dossier, extensions, api_key)
+
+        for dossier, detection in detections.items():
+            print("TOUTES ANOMALIES:", nb_anomalies)
+            if nb_anomalies != 0:
+                return True, ""
+            print(f"\nAnalyse du dossier : {dossier}\n")
+            result = detection.analyser_dossier_complet(dossier)
+            nb_anomalies += result or 0
+            print(f"Nombre de fichiers dangereux détectés dans le dossier {dossier} : {detection.fichiers_dangereux}")
+
+        return (True, "") if detection.fichiers_dangereux != 0 else (False, "")
+    
+    except Exception as e:
+        return False, str(e)
+
+
+def main():
+    try:
+        result, message = analyse()
+        if result:
+            print("L'analyse a été effectuée avec succès.")
+            if message:
+                print("Message : ", message)
+            else:
+                print("Il y a des anomalies.")
+        else:
+            print("L'analyse n'a pas été effectuée avec succès.")
+            if message:
+                print("Message : ", message)
+            else:
+                print("Il y a eu une interruption.")
+    except Exception as e:
+        print("Une erreur est survenue lors de l'exécution de l'analyse.")
+        print(e)
+
+if __name__ == "__main__":
+    main()
