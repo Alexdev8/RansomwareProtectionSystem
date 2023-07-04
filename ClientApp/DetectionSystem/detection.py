@@ -1,5 +1,6 @@
 import os
 import sys
+import pathlib
 from datetime import datetime
 from uuid import getnode
 
@@ -15,7 +16,9 @@ from cv2 import VideoCapture
 from py_compile import compile
 from time import sleep
 
-from ClientApp.load_vars import get, get_keys
+#from ClientApp.load_vars import get, get_keys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from load_vars import get, get_keys
 from requests.exceptions import RequestException
 
 nb_anomalies = 0
@@ -260,7 +263,7 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
         if not self.verifier_extension(extensions):
             anomalies.append({
                 'type': 'EXTENSION',
-                'path': os.path.abspath(file),
+                'path': str(pathlib.Path(file).resolve()),
                 'date': date,
                 'message': f"L'extension du fichier {file_name} ne figure pas dans la base de données de référence."
             })
@@ -269,7 +272,7 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
         if not self.verifier_ouverture_fichier():
             anomalies.append({
                 'type': 'OUVERTURE',
-                'path': os.path.abspath(file),
+                'path': str(pathlib.Path(file).resolve()),
                 'date': date,
                 'message': f"Le fichier {file_name} ne peut pas être ouvert. Il est possible qu'il soit chiffré."
             })
@@ -281,7 +284,7 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
         if entropie is not None and entropie > 7:
             anomalies.append({
                 'type': 'ENTROPIE',
-                'path': os.path.abspath(file),
+                'path': str(pathlib.Path(file).resolve()),
                 'date': date,
                 'message': f"Le fichier {file_name} a une haute entropie ({entropie}). Il est possible qu'il soit chiffré."
             })
@@ -292,7 +295,7 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
         if Utilitaires.check_file_size(self.file, self.old_sizes, size_threshold):
             anomalies.append({
                 'type': 'TAILLE',
-                'path': os.path.abspath(file),
+                'path': str(pathlib.Path(file).resolve()),
                 'date': date,
                 'message': f"La taille du fichier {file_name} a changé de manière significative."
             })
@@ -301,7 +304,7 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
         if self.check_virustotal():
             anomalies.append({
                 'type': 'REPUTATION',
-                'path': os.path.abspath(file),
+                'path': str(pathlib.Path(file).resolve()),
                 'date': date,
                 'message': f"Le fichier {file_name} est identifié comme malveillant par VirusTotal."
             })
@@ -329,12 +332,17 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
 
             for fichier in fichiers_systeme:
                 fichier_path = os.path.join(dossier, fichier)
-                fichier_abs_path = os.path.abspath(fichier_path)
+                fichier_abs_path = str(pathlib.Path(fichier).resolve())
 
                 if os.path.isdir(fichier_path):
                     self.analyser_dossier_complet(fichier_path)
                 else:
                     self.analyser_fichier_unique(fichier_path, self.extensions)
+                    
+                for anomalie in self.toutes_anomalies:
+                    if anomalie['path'] == fichier_abs_path:
+                        print(f"Type d'anomalie : {anomalie['type']}")
+                        print(f"Chemin absolu du fichier concerné : {fichier_abs_path}")
 
                 # Ajouter la vérification pour arrêter l'analyse si des fichiers dangereux ont été détectés
                 if self.fichiers_dangereux_detectes:
@@ -350,7 +358,16 @@ def analyse() -> tuple[bool, str]:
     try:
         nb_anomalies = 0
         # Charger les variables d'environnement
-        load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
+        #load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
+        
+        # Charger les variables d'environnement
+        dotenv_path = ""
+        if os.name == "nt":  # Windows
+            dotenv_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
+        else:  # Mac/Linux
+            dotenv_path = os.path.join(os.path.expanduser("~"), '.env')
+
+        load_dotenv(dotenv_path)    
 
         # Charger l'API VirusTotal du .env
         api_key = os.getenv("API_KEY_VIRUS_TOTAL") or "default_value"
@@ -367,7 +384,6 @@ def analyse() -> tuple[bool, str]:
             detections[dossier] = RansomwareDetection(dossier, extensions, api_key)
 
         for dossier, detection in detections.items():
-            print("TOUTES ANOMALIES:", nb_anomalies)
             if nb_anomalies != 0:
                 return True, ""
             print(f"\nAnalyse du dossier : {dossier}\n")
@@ -403,12 +419,12 @@ def analyse() -> tuple[bool, str]:
             detections[dossier] = RansomwareDetection(dossier, extensions, api_key)
 
         for dossier, detection in detections.items():
-            print("TOUTES ANOMALIES:", nb_anomalies)
             if nb_anomalies != 0:
                 return True, ""
             print(f"\nAnalyse du dossier : {dossier}\n")
             result = detection.analyser_dossier_complet(dossier)
             nb_anomalies += result or 0
+            print(f"")
             print(f"Nombre de fichiers dangereux détectés dans le dossier {dossier} : {detection.fichiers_dangereux}")
 
         return (True, "") if detection.fichiers_dangereux != 0 else (False, "")
