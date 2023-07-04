@@ -14,6 +14,8 @@ require('dotenv').config({path: ".env"});
 const db_config = require('./db_config');
 
 const MAX_BACKUPS = 3;
+const BACKUP_FREQUENCY = 1;
+const FULLBACKUP_TIME = new Date('2023-07-03T06:00:00');
 
 const app = express();
 let connection = mysql.createConnection(db_config);
@@ -27,8 +29,8 @@ connection.on('error', function onError(err) {
     throw err;
 });
 
-cron.schedule('*/5 * * * * *', () => {
-    console.log('Tâche exécutée toutes les 5s');
+cron.schedule('0 * * * *', () => {
+    console.log('Tâche exécutée toutes les heures');
     // Effectuez ici les actions que vous souhaitez effectuer régulièrement
 }, {
     scheduled: true,
@@ -356,6 +358,45 @@ app.use(bodyParser.urlencoded({extended: true}));
 
 // Where to serve static content
 app.use(express.static(path.join(__dirname, "site/build")));
+
+app.get('/api/client/:clientId/backup/push', getMachineID, checkMachineToken, (req, res) => {
+    //décide si on doit backup des données dans la database
+
+    const sql="SELECT `backupDate` FROM `Backup` WHERE `machineID`=? ORDER BY `backupDate` DESC LIMIT 1";
+
+    refreshConnection();
+    connection.query(sql, [req.machineID], (err, results, fields) => {
+        if (!err) {
+            if (results.length !== 0) {
+                const now = new Date();
+                const backupDate = new Date(results[0].backupDate);
+                backupDate.setHours(backupDate.getHours() + BACKUP_FREQUENCY);
+                res.statusCode = 200;
+                if (backupDate < Date.now()) {
+                    console.log("yes");
+                    if (now.getHours() === FULLBACKUP_TIME.getHours()) {
+                        res.send("Ouai, c'est Greg !");
+                    }
+                    else {
+                        res.send("Ah ouai une petite frerot vasy");
+                    }
+                }
+                else {
+                    console.log("no");
+                    res.send("Tié zinzin frate");
+                }
+            }
+            else {
+                res.sendStatus(404);
+                return console.error("Cette machine n'existe pas");
+            }
+        }
+        else {
+            res.sendStatus(404);
+            return console.error('error during query: ' + err.code);
+        }
+    });
+});
 
 app.post('/api/client/:clientId/backup/push', getMachineID, checkMachineToken, checkDestinationFolder, upload.array('files'), encryptFile, clearOldBackup, (req, res) => {
     //backup des données dans la database
