@@ -145,7 +145,7 @@ def ConnectionAdmin():
     password_label = tk.Label(connection, text="Token:")
 
 
-    username_entry = tk.Entry(connection)
+    username_entry = tk.Entry(connection,font=('Arial', 16),width=30)
     password_entry = tk.Entry(connection, show="*", font=('Arial', 16),width=30)  # Les caractères du mot de passe seront masqués avec des étoiles
     username_entry.place(relx=0.5,rely=0.4)
     password_entry.place(relx=0.5,rely=0.5)
