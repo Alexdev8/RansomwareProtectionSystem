@@ -5,8 +5,8 @@ import requests
 import re
 import uuid
 import filecmp
-from ClientApp.load_vars import get_values
 from dotenv import load_dotenv
+from ..load_vars import get_values
 
 load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
 

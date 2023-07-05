@@ -1,11 +1,9 @@
 import os
 import tkinter as tk
-from tkinter import Scrollbar, Text,ttk
 from PIL import Image, ImageTk
 from dotenv import load_dotenv
-import ClientApp.load_vars as vars
-from ClientApp.PCIsolation.network_interface_up_no_loopback import desactivation_interfaces
-from ClientApp.PCRéactivation.network_interfaces_to_up import interfaces_to_up
+from .. import load_vars as vars
+from ..PCRéactivation.network_interfaces_to_up import interfaces_to_up
 
 
 def close_window(root):

@@ -16,7 +16,7 @@ from cv2 import VideoCapture
 from py_compile import compile
 from time import sleep
 
-from ClientApp.load_vars import get, get_keys
+from .. import load_vars
 #sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 #from load_vars import get, get_keys
 from requests.exceptions import RequestException
@@ -269,7 +269,7 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
         # envoyer les anomalies au serveur
         token = os.getenv("ACCESS_TOKEN")
         headers = {"Authorization": f"Bearer {token}"}
-        url = (os.getenv("SERVER_ADDRESS") or "default_value") + '/' + get('VARS', 'CLIENT_ID') + '/machine/error'
+        url = (os.getenv("SERVER_ADDRESS") or "default_value") + '/' + load_vars.get('VARS', 'CLIENT_ID') + '/machine/error'
 
         anomalies_envoyees = []
 
@@ -443,8 +443,8 @@ def analyse() -> tuple[bool, str]:
         # Charger l'API VirusTotal du .env
         api_key = os.getenv("API_KEY_VIRUS_TOTAL") or "default_value"
 
-        extensions = [get('FILES_EXTENSIONS', key) for key in get_keys('FILES_EXTENSIONS')]
-        dossiers = [get('DOSSIERS', key) for key in get_keys('DOSSIERS')]
+        extensions = [load_vars.get('FILES_EXTENSIONS', key) for key in load_vars.get_keys('FILES_EXTENSIONS')]
+        dossiers = [load_vars.get('DOSSIERS', key) for key in load_vars.get_keys('DOSSIERS')]
 
         utilitaires = {}
         detections = {}
@@ -478,8 +478,8 @@ def analyse() -> tuple[bool, str]:
         # Charger l'API VirusTotal du .env
         api_key = os.getenv("API_KEY_VIRUS_TOTAL") or "default_value"
 
-        extensions = [get('FILES_EXTENSIONS', key) for key in get_keys('FILES_EXTENSIONS')]
-        dossiers = [get('DOSSIERS', key) for key in get_keys('DOSSIERS')]
+        extensions = [load_vars.get('FILES_EXTENSIONS', key) for key in load_vars.get_keys('FILES_EXTENSIONS')]
+        dossiers = [load_vars.get('DOSSIERS', key) for key in load_vars.get_keys('DOSSIERS')]
 
         utilitaires = {}
         detections = {}

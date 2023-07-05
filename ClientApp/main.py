@@ -4,10 +4,10 @@ import requests
 import os
 
 from ClientApp.DataBackupSystem.backup import full_backup, partial_backup, send_directory_files, get_last_backup
-from ClientApp.DetectionSystem.detection import analyse
-from ClientApp.PCIsolation.network_interface_up_no_loopback import desactivation_interfaces
-from ClientApp.PopUp.popup import message_erreur
-import ClientApp.load_vars as vars
+from .DetectionSystem.detection import analyse
+from .PCIsolation.network_interface_up_no_loopback import desactivation_interfaces
+from .PopUp.popup import message_erreur
+from . import load_vars as vars
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -15,21 +15,19 @@ temp_path = os.getenv('TEMP')
 
 backup_authorization = False
 
-
-def main_analyse():
-    while True:
-        result = analyse()
-        print(result)
-        if result[0]:
-            # Une erreur a été détecté
-            backup_authorization = False
-            message_erreur(desactivation_interfaces(), result[1])
-        else:
-            # if sys.argv[1:] and sys.argv[1] == "backup":
-            print("Backup autorisé")
+def main():
+    def main_analyse():
+        while True:
+            result = analyse()
+            if result[0]:
+                # Une erreur a été détecté
+                backup_authorization = Falsemessage_erreur(desactivation_interfaces(), result[1])
+            else:
+                # if sys.argv[1:] and sys.argv[1] == "backup":
+                print("Backup autorisé")
             backup_authorization = True
 
-        time.sleep(int(vars.get("VARS", "ANALYSE_FREQUENCY")))
+            time.sleep(int(vars.get("VARS", "ANALYSE_FREQUENCY")))
 
 
 def main_backup():
@@ -61,8 +59,8 @@ def main_backup():
         time.sleep(300)
 
 
-analyse_thread = threading.Thread(target=main_analyse)
-backup_thread = threading.Thread(target=main_backup)
+    analyse_thread = threading.Thread(target=main_analyse)
+    backup_thread = threading.Thread(target=main_backup)
 
-analyse_thread.start()
-backup_thread.start()
+    analyse_thread.start()
+    backup_thread.start()
