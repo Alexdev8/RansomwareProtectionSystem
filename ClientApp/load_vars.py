@@ -14,3 +14,9 @@ def get_keys(section):
     _conf.read(config_file_path)
     #print("Config sections:", _conf.sections())  # Print sections for debug
     return _conf.options(section)
+
+def get_values(section):
+    _conf = configparser.ConfigParser()
+    config_file_path = os.path.join(os.path.dirname(__file__), 'config.ini')
+    _conf.read(config_file_path)
+    return [value for key, value in _conf.items(section)]

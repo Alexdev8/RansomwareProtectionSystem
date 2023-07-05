@@ -4,21 +4,27 @@ import datetime
 import requests
 import re
 import uuid
+import filecmp
+from ClientApp.load_vars import get_values
 from dotenv import load_dotenv
-import ClientApp.load_vars as vars
-
-source_dir = "source_dir"
-backup_dir = "backup_dir"
-temp_dir = "temp"
-directory_to_send = "backup_dir/backup29062023144124"
 
 load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
 
 
-def full_backup(source_dir, backup_dir):
-    timestamp = datetime.datetime.now().strftime("%d%m%Y%H%M%S")
-    backup_dir = os.path.join(backup_dir, f"backup{timestamp}")
-    shutil.copytree(source_dir, backup_dir)
+def full_backup(backup_dir):
+    backup_dir = os.path.join(backup_dir, f"backup")
+
+    # Utiliser la fonction get_values pour obtenir les chemins des fichiers
+    dossier_paths = get_values("DOSSIERS")
+
+    # Copier chaque fichier dans le répertoire de sauvegarde
+    for path in dossier_paths:
+        if os.path.isfile(path):
+            shutil.copy2(path, backup_dir)
+            print(f"Fichier sauvegardé : {path}")
+        else:
+            print(f"Erreur : Le chemin spécifié n'est pas un fichier valide : {path}")
+
     print(f"Sauvegarde complète effectuée : {backup_dir}")
 
 
@@ -31,48 +37,44 @@ def get_last_backup(backup_dir):
         return None
 
 
-def partial_backup(source_dir, backup_dir):
+def partial_backup(backup_dir):
     last_backup = get_last_backup(backup_dir)
+    dossier_paths = get_values("DOSSIERS")
 
     if last_backup is None:
         print("Erreur: Aucune sauvegarde n'a été trouvé ! Veuillez démarrer une sauvegarde complète de la machine ou "
               "bien contactez votre administrateur.")
         return
 
-    for root, _, files in os.walk(source_dir):
-        for file in files:
-            source_path = os.path.join(root, file)
-            relative_path = os.path.relpath(source_path, source_dir)
-            backup_path = os.path.join(last_backup, relative_path)
+    # Comparer les fichiers du dernier backup avec les fichiers dans dossier_paths
+    for dossier_path in dossier_paths:
+        full_dossier_path = os.path.join(last_backup, os.path.basename(dossier_path))
 
-            if os.path.exists(backup_path):
-                # Compare modification timestamps to check if the file has been modified
-                if os.path.getmtime(source_path) > os.path.getmtime(backup_path):
-                    # Copy the modified file to the new backup directory
-                    new_backup_path = os.path.join(last_backup, relative_path)
-                    os.makedirs(os.path.dirname(new_backup_path), exist_ok=True)
-                    shutil.copy2(source_path, new_backup_path)
-            else:
-                # Copy new file to the new backup directory
-                new_backup_path = os.path.join(last_backup, relative_path)
-                os.makedirs(os.path.dirname(new_backup_path), exist_ok=True)
-                shutil.copy2(source_path, new_backup_path)
+        # Si le fichier n'existe pas dans last_backup
+        if not os.path.exists(full_dossier_path):
+            print(f"Dossier manquant dans la sauvegarde : {dossier_path}")
+            shutil.copytree(dossier_path, full_dossier_path)  # Copier le contenu du dossier dans le dernier backup
+        # S'il existe
+        else:
+            # Vérifier si les fichiers dans le dossier sont différents
+            if not filecmp.cmpfiles(dossier_path, full_dossier_path, shallow=False):
+                # Mettre à jour les fichiers du dernier backup avec les nouveaux fichiers
+                shutil.rmtree(full_dossier_path)  # Supprimer le dossier existant
+                shutil.copytree(dossier_path, full_dossier_path)  # Copier les nouveaux fichiers vers le dernier backup
 
-    print(f"Sauvegarde partielle effectuée : {last_backup}")
+    print("Backtup partielle effectuée avec succès.")
+
 
 
 def send_directory_files(directory, url):
     # Créer une archive du répertoire
     base_name = os.path.basename(directory)
-    archive_name = f"{base_name}.zip"
+    timestamp = datetime.datetime.now().strftime("%d%m%Y%H%M%S")
+    archive_name = f"{base_name + timestamp}.zip"
     shutil.make_archive(base_name, 'zip', directory)
-    temp_archive_path = os.path.join(temp_dir, archive_name)
-
-    # Déplacer l'archive vers le dossier temporaire
-    shutil.move(archive_name, temp_archive_path)
 
     # Envoyer l'archive via sendfile
-    with open(temp_archive_path, 'rb') as f:
+    with open(directory, 'rb') as f:
         files = {'files': (archive_name, f, 'application/zip')}
         response = requests.post(url, params={"machineAddress": ':'.join(re.findall('..', '%012x' % uuid.getnode())),
                                               "date": datetime.datetime.now()}, files=files,
@@ -81,16 +83,8 @@ def send_directory_files(directory, url):
         # Traiter la réponse du serveur si nécessaire
         if response.status_code == 201:
             print("Répertoire envoyé avec succès !")
-            # Supprimer la backup originale dans backup_dir
-            shutil.rmtree(os.path.join(backup_dir, base_name))
         else:
             print("Une erreur est survenue lors de l'envoi !")
             print("Raison : " + response.text)
 
-    # Supprimer la backup dans temp
-    os.remove(temp_archive_path)
 
-
-# full_backup(source_dir, backup_dir)
-# partial_backup(source_dir, backup_dir)
-send_directory_files(directory_to_send, os.environ.get("SERVER_ADDRESS") + '/' + vars.get('VARS', 'CLIENT_ID') + '/backup/push')
