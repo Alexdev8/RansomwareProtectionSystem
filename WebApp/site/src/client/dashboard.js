@@ -54,25 +54,25 @@ export default function Dashboard() {
             )}
             <table>
                 <thead>
-                    <tr>
-                        <th>N° série</th>
-                        <th>Nom</th>
-                        <th>État</th>
-                        <th>Actions</th>
-                    </tr>
+                <tr>
+                    <th>N° série</th>
+                    <th>Nom</th>
+                    <th>État</th>
+                    <th>Actions</th>
+                </tr>
                 </thead>
                 <tbody>
-                    {computers.map((computer, index) => (
-                        <tr key={index}>
-                            <td>{computer.nserie}</td>
-                            <td>{computer.name}</td>
-                            <td>{computer.state}</td>
-                            <td>
-                                <button onClick={() => handleToggleState(index)}>Changer l'état</button>
-                                <button onClick={() => handleDeleteComputer(index)}>Supprimer</button>
-                            </td>
-                        </tr>
-                    ))}
+                {computers.map((computer, index) => (
+                    <tr key={index}>
+                        <td>{computer.nserie}</td>
+                        <td>{computer.name}</td>
+                        <td>{computer.state}</td>
+                        <td>
+                            <button onClick={() => handleToggleState(index)}>Changer l'état</button>
+                            <button onClick={() => handleDeleteComputer(index)}>Supprimer</button>
+                        </td>
+                    </tr>
+                ))}
                 </tbody>
             </table>
         </div>

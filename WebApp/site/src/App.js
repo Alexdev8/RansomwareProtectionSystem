@@ -5,6 +5,7 @@ import SecurityPolicy from './guest/views/SecurityPolicy';
 import Contact from './guest/views/Contact';
 import './App.css';
 import Dashboard from './client/dashboard';
+import {LogIn, SignIn} from './SingIn.js';
 
 export default function App() {
   return (
@@ -31,6 +32,8 @@ export default function App() {
           <Route path="/security-policy" element={<SecurityPolicy />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/SingIn" element={<SignIn />} />
+          <Route path="/LogIn" element={<LogIn />} />
         </Routes>
 
         <footer>
