@@ -2,8 +2,8 @@ import os
 import tkinter as tk
 from PIL import Image, ImageTk
 from dotenv import load_dotenv
-from .. import load_vars as vars
-from ..PCRéactivation.network_interfaces_to_up import interfaces_to_up
+import load_vars as vars
+from PCRéactivation.network_interfaces_to_up import interfaces_to_up
 
 
 def close_window(root):
@@ -110,10 +110,10 @@ def message_erreur(interfaces,texte):
 
 
     # Création du bouton OK pour fermer la fenêtre
-    button_ok = tk.Button(root, text="Plus de détails", width=int(dialog_width*0.01), command=lambda: afficher_texte(code_erreur))
+    button_ok = tk.Button(root, text="Plus de détails", width=15, command=lambda: afficher_texte(code_erreur))
     button_ok.place(relx=0.6, rely=0.95, anchor='s')  # Placer le bouton en bas au centre
     # Création du bouton OK pour fermer la fenêtre
-    button_ok = tk.Button(root, text="Admin ?", width=10, command=lambda: ConnectionAdmin())
+    button_ok = tk.Button(root, text="Administrateur", width=15, command=lambda: ConnectionAdmin())
     button_ok.place(relx=0.4, rely=0.95, anchor='s')  # Placer le bouton en bas au centre
 
     # Lancement de la boucle principale
@@ -162,3 +162,5 @@ def ConnectionAdmin():
 
     connection.mainloop()
 
+
+message_erreur([],"")
