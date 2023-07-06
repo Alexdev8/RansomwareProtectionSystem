@@ -373,7 +373,6 @@ app.get('/api/client/:clientId/backup/push', getMachineID, checkMachineToken, (r
                 backupDate.setHours(backupDate.getHours() + BACKUP_FREQUENCY);
                 res.statusCode = 200;
                 if (backupDate < Date.now()) {
-                    console.log("yes");
                     if (now.getHours() === FULLBACKUP_TIME.getHours()) {
                         //Full backup
                         res.send("Ouai, c'est Greg !");
@@ -410,6 +409,7 @@ app.post('/api/client/:clientId/backup/push', getMachineID, checkMachineToken, c
         return res.status(400).send("Aucun fichier n'a été reçu.");
     }
 
+    console.log(req.files);
     // Réponse
     let clientID = req.params.clientId;
     let machineAddress = req.query.machineAddress;

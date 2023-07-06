@@ -261,14 +261,12 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
         # envoyer les anomalies au serveur
         token = os.getenv("ACCESS_TOKEN")
         headers = {"Authorization": f"Bearer {token}"}
-        url = (os.getenv("SERVER_ADDRESS") or "default_value") + '/' + get('VARS', 'CLIENT_ID') + '/machine/error'
+        url = os.getenv("SERVER_ADDRESS") + '/' + get('VARS', 'CLIENT_ID') + '/machine/error'
 
         anomalies_envoyees = []
 
         for anomalie in anomalies:
-            print("CHIBRE")
             if anomalie in anomalies_envoyees:
-                print("BITE")
                 continue
 
             # Construction du message d'erreur
@@ -286,7 +284,6 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
             # Vérifier la réponse
             for _ in range(3):  # Effectuer jusqu'à 3 tentatives
                 try:
-                    print("ON ENVOIE AU SERVEUR")
                     response = requests.post(url, params=params, data=error_data, headers=headers)
                     response.raise_for_status()
                     if response.status_code == 201:

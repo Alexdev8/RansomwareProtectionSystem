@@ -17,6 +17,6 @@ def get_keys(section):
 
 def get_values(section):
     _conf = configparser.ConfigParser()
-    config_file_path = os.path.join(os.path.dirname(__file__), 'config.ini')
+    config_file_path = 'config.ini'
     _conf.read(config_file_path)
     return [value for key, value in _conf.items(section)]

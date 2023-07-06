@@ -1,6 +1,8 @@
 import threading
 import time
 import requests
+import re
+import uuid
 import os
 
 from ClientApp.DataBackupSystem.backup import full_backup, partial_backup, send_directory_files, get_last_backup
@@ -33,21 +35,29 @@ def main():
 
 
     def main_backup():
+        print("ca commence ici")
         while True:
             if backup_authorization:
+                headers = {"Authorization": f"Bearer {os.getenv('ACCESS_TOKEN')}"}
+                url = os.environ.get("SERVER_ADDRESS") + '/' + vars.get('VARS', 'CLIENT_ID') + '/backup/push'
+                params = {
+                    "machineAddress": ':'.join(re.findall('..', '%012x' % uuid.getnode()))
+                }
+
                 print("j'ai le droit de backup")
-                response = requests.get(os.environ.get("SERVER_ADDRESS"))
+                response = requests.get(url, headers=headers, params=params)
+                print(response.text)
 
                 # Vérifier la réponse
                 if response.text == "Ouai, c'est Greg !":
-
+                    print("Full backup")
                     full_backup(temp_path)
                     send_directory_files(get_last_backup(temp_path),
                                          os.environ.get("SERVER_ADDRESS") + '/' + vars.get('VARS',
                                                                                            'CLIENT_ID') + '/backup/push')
 
                 elif response.text == "Ah ouai une petite frerot vasy":
-
+                    print("Partial backup")
                     partial_backup(temp_path)
                     send_directory_files(get_last_backup(temp_path),
                                          os.environ.get("SERVER_ADDRESS") + '/' + vars.get('VARS',
@@ -61,7 +71,7 @@ def main():
             else:
                 print("pas le droit de backup")
             # wait 5 min
-            time.sleep(60)
+            time.sleep(20)
 
 
     analyse_thread = threading.Thread(target=main_analyse)
