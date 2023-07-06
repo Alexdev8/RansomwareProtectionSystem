@@ -475,7 +475,7 @@ app.post('/api/client/:clientId/machine/register', checkSessionToken,  (req, res
 
     const sql="INSERT INTO `Machine`(`clientID`, `machineAddress`, `name`, `token`) " +
         "VALUES (?, ?, ?, ?, ?)";
-
+    console.log(req.body.machineAddress)
     refreshConnection();
     connection.query(sql, [req.params.clientId, req.body.machineAddress, req.body.name, generateSecureKey(40)],(err, results, fields) => {
         if (!err) {
