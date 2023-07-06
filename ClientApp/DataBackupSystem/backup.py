@@ -13,18 +13,18 @@ load_dotenv('.env')
 
 
 def full_backup(backup_dir):
-    backup_dir = os.path.join(backup_dir, f"backup")
+    backup_dir = os.path.join(backup_dir, "backup")
 
-    # Utiliser la fonction get_values pour obtenir les chemins des fichiers
+    # Utiliser la fonction get_values pour obtenir les chemins des dossiers
     dossier_paths = get_values("DOSSIERS")
 
-    # Copier chaque fichier dans le répertoire de sauvegarde
+    # Copier chaque dossier dans le répertoire de sauvegarde
     for path in dossier_paths:
-        if os.path.isfile(path):
-            shutil.copy2(path, backup_dir)
-            print(f"Fichier sauvegardé : {path}")
+        if os.path.isdir(path):
+            shutil.copytree(path, os.path.join(backup_dir, os.path.basename(path)))
+            print(f"Dossier sauvegardé : {path}")
         else:
-            print(f"Erreur : Le chemin spécifié n'est pas un fichier valide : {path}")
+            print(f"Erreur : Le chemin spécifié n'est pas un dossier valide : {path}")
 
     print(f"Sauvegarde complète effectuée : {backup_dir}")
 
