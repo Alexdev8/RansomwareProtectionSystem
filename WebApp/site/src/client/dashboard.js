@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import NavBarClient from './components/NavBarClient';
 import './dashboard.css';
 
-export default function Dashboard() {
+export default function Dashboard(prop) {
     const [computers, setComputers] = useState([]);
     const [showForm, setShowForm] = useState(false);
     const [computerName, setComputerName] = useState('');
     const [computerSerie, setComputerSerie] = useState('');
-
+    console.log(prop.user);
+    console.log(prop.user.clientID);
+    console.log(prop.user.connectionToken);
     const handleAddComputer = () => {
         setShowForm(true);
     };

@@ -1,17 +1,42 @@
-import React from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import React, {useState} from 'react';
+import {BrowserRouter, BrowserRouter as Router, Route, Routes} from 'react-router-dom';
 import HomePage from './guest/views/HomePage';
-import SecurityPolicy from './guest/views/SecurityPolicy';
 import Contact from './guest/views/Contact';
 import './App.css';
 import Dashboard from './client/dashboard';
 import {LogIn, SignIn} from './SingIn.js';
 
+
+function setCookie(cname, cvalue, exdays) {
+  const d = new Date();
+  d.setTime(d.getTime() + (exdays*24*60*60*1000));
+  let expires = "expires="+ d.toUTCString();
+  document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+}
+
+function getCookie(cname) {
+  let name = cname + "=";
+  let decodedCookie = decodeURIComponent(document.cookie);
+  let ca = decodedCookie.split(';');
+  for(let i = 0; i <ca.length; i++) {
+    let c = ca[i];
+    while (c.charAt(0) === ' ') {
+      c = c.substring(1);
+    }
+    if (c.indexOf(name) === 0) {
+      return c.substring(name.length, c.length);
+    }
+  }
+  return "";
+}
+
 export default function App() {
+  const [user, setUser] = useState((!!getCookie("user")) ? {email: getCookie("user")} : null);
+  const [prevLocation, setPrevLocation] = useState("/");
   return (
-    <Router>
+    <BrowserRouter>
       <div id="app">
-        <header>
+        <header user={user} setUser={setUser}>
           <div className="header-style">
             <div className="logo-container">
               <img
@@ -29,11 +54,10 @@ export default function App() {
 
         <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/security-policy" element={<SecurityPolicy />} />
           <Route path="/contact" element={<Contact />} />
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/dashboard" element={<Dashboard user={user}/>} />
           <Route path="/SingIn" element={<SignIn />} />
-          <Route path="/LogIn" element={<LogIn />} />
+          <Route path="/LogIn" element={<LogIn originPath={prevLocation} user={user} setUser={setUser} setCookie={setCookie}/>} />
         </Routes>
 
         <footer>
@@ -42,7 +66,7 @@ export default function App() {
               <li>&copy; 2023 Application Anti-Ransomware. Tous droits réservés.</li>
               <br />
               <li>
-                <a href="/security-policy">Politique de sécurité</a>
+              <a href="https://efrei365net-my.sharepoint.com/:w:/g/personal/michel_wu_efrei_net/Ea2Ac5G5aqxCnuMd5_BCcWIBgxwuyaKcYdBT_NL8pEpPlw?e=UHFq5n">Security Policy</a>
               </li>
               <br />
               <li>
@@ -52,6 +76,6 @@ export default function App() {
           </div>
         </footer>
       </div>
-    </Router>
+    </BrowserRouter>
   );
 }
