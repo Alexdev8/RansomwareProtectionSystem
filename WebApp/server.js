@@ -473,11 +473,11 @@ app.get('/api/client/:clientId/backup/:backupId/download', checkSessionToken, (r
 app.post('/api/client/:clientId/machine/register', checkSessionToken,  (req, res) => {
     //add a new machine to a client account
 
-    const sql="INSERT INTO `Machine`(`clientID`, `machineAddress`, `name`, `state`, `token`) " +
+    const sql="INSERT INTO `Machine`(`clientID`, `machineAddress`, `name`, `token`) " +
         "VALUES (?, ?, ?, ?, ?)";
 
     refreshConnection();
-    connection.query(sql, [req.params.clientId, req.query.machineAddress, req.body.name, req.body.state, generateSecureKey(40)],(err, results, fields) => {
+    connection.query(sql, [req.params.clientId, req.query.machineAddress, req.body.name, generateSecureKey(40)],(err, results, fields) => {
         if (!err) {
             res.statusCode = 201;
             res.send(results);
