@@ -266,7 +266,9 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
         anomalies_envoyees = []
 
         for anomalie in anomalies:
-            if anomalie not in anomalies_envoyees:
+            print("CHIBRE")
+            if anomalie in anomalies_envoyees:
+                print("BITE")
                 continue
 
             # Construction du message d'erreur
@@ -284,6 +286,7 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
             # Vérifier la réponse
             for _ in range(3):  # Effectuer jusqu'à 3 tentatives
                 try:
+                    print("ON ENVOIE AU SERVEUR")
                     response = requests.post(url, params=params, data=error_data, headers=headers)
                     response.raise_for_status()
                     if response.status_code == 201:
@@ -426,11 +429,13 @@ def analyse() -> tuple[bool, str]:
         # Charger les variables d'environnement
         dotenv_path = ""
         if os.name == "nt":  # Windows
-            dotenv_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
+            # dotenv_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
+            dotenv_path = '.env'
         else:  # Mac/Linux
-            dotenv_path = os.path.join(os.path.expanduser("~"), '.env')
+            # dotenv_path = os.path.join(os.path.expanduser("~"), '.env')
+            dotenv_path = '.env'
 
-        load_dotenv(dotenv_path, encoding='utf-8')    
+        load_dotenv(dotenv_path, encoding='utf-8')
 
         # Charger l'API VirusTotal du .env
         api_key = os.getenv("API_KEY_VIRUS_TOTAL") or "default_value"
@@ -465,7 +470,8 @@ def analyse() -> tuple[bool, str]:
     try:
         nb_anomalies = 0
         # Charger les variables d'environnement
-        load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
+        # load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
+        load_dotenv('.env')
 
         # Charger l'API VirusTotal du .env
         api_key = os.getenv("API_KEY_VIRUS_TOTAL") or "default_value"

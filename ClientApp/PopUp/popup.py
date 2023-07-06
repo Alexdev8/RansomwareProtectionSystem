@@ -2,8 +2,8 @@ import os
 import tkinter as tk
 from PIL import Image, ImageTk
 from dotenv import load_dotenv
-import load_vars as vars
-from PCRéactivation.network_interfaces_to_up import interfaces_to_up
+from .. import load_vars as vars
+from ..PCRéactivation.network_interfaces_to_up import interfaces_to_up
 
 
 def close_window(root):
@@ -13,7 +13,8 @@ def submit():
     global username_entry, password_entry  # Déclarer les variables en tant que globales
     username = username_entry.get()
     password = password_entry.get()
-    load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
+    # load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
+    load_dotenv('.env')
     print(vars.get("VARS","CLIENT_ID"),os.environ.get('ACCESS_TOKEN'))
     if username==vars.get("VARS","CLIENT_ID") and password==os.environ.get('ACCESS_TOKEN'):
 
@@ -82,7 +83,8 @@ def message_erreur(interfaces,texte):
     script_dir = os.path.dirname(os.path.abspath(__file__))
 
     # Chargement du logo
-    image_path = os.path.join(script_dir, "RPS.png")
+    # image_path = os.path.join(script_dir, "RPS.png")
+    image_path = "RPS.png"
     logo_image = Image.open(image_path)
     image_height = int(dialog_height * 0.3)  # Utiliser 20% de la hauteur totale de la fenêtre
     image_width = int(image_height * logo_image.width / logo_image.height)  # Calculer la largeur proportionnelle
@@ -161,6 +163,3 @@ def ConnectionAdmin():
 
 
     connection.mainloop()
-
-
-message_erreur([],"")
