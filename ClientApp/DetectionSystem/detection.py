@@ -10,13 +10,14 @@ import requests
 from dotenv import load_dotenv
 from hashlib import sha256
 
-from PyPDF2 import PdfFileReader
+from docx import Document
+from PyPDF2 import PdfReader
 from PIL import Image
 from cv2 import VideoCapture
 from py_compile import compile
 from time import sleep
 
-from .. import load_vars
+from ClientApp.load_vars import get, get_keys
 #sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 #from load_vars import get, get_keys
 from requests.exceptions import RequestException
@@ -87,16 +88,24 @@ class VerificationFichier:
 
     # Vérifier si l'extension du fichier donné est dans la base de données
     def verifier_extension(self, extensions):
+        if self.file.endswith('.pyc') or '__pycache__' in self.file:
+            # Ignorer les fichiers .pyc et le dossier __pycache__
+            return True
+        
         _, file_extension = os.path.splitext(self.file)
         file_extension = file_extension[1:]
         return file_extension in extensions
 
-    # Vérifier si le fichier donné peut s'ouvrir
+    # Vérifier si un fichier peut s'ouvrir
     def verifier_ouverture_fichier(self) -> bool:
+        if self.file.endswith('.pyc') or '__pycache__' in self.file:
+            # Ignorer les fichiers .pyc et le dossier __pycache__
+            return True
+    
         extensions_connues = {
             'odt': None,
             'docx': None,
-            'pdf': PdfFileReader,
+            'pdf': PdfReader,
             'jpeg': Image.open,
             'jpg': Image.open,
             'png': Image.open,
@@ -130,102 +139,97 @@ class VerificationFichier:
             return True
 
         try:
-            if extension.lower() in ['odt', 'docx', 'txt', 'csv', 'html', 'xml', 'c', 'cpp', 'java', 'php']:
-                with open(self.file, 'r') as f:
+            if extension.lower() in ['odt', 'txt', 'csv', 'html', 'xml', 'c', 'cpp', 'java', 'php']:
+                with open(self.file, 'rb') as f:
                     f.read(1)
             else:
                 verifier(self.file)
             return True
-        except Exception:
+        except Exception as e:
+            #print(f"Erreur lors de l'ouverture du fichier: {str(e)}")
             return False
 
     # Méthode pour calculer l'entropie d'un fichier
     def calc_entropie(self) -> float:
         try:
+            if self.file.endswith('.pyc') or '__pycache__' in self.file:
+                # Ignorer les fichiers .pyc et le dossier __pycache__
+                return None
+        
             _, extension = os.path.splitext(self.file)
             extension = extension[1:].lower()
 
-            if extension == 'png':
-                return self.calculer_entropie_png(self.file)
-            elif extension == 'pdf':
-                return self.calculer_entropie_pdf(self.file)
-            elif extension in ['jpeg', 'jpg', 'gif']:
+            if extension == ['png', 'jpeg', 'jpg', 'gif']:
                 return self.calculer_entropie_image(self.file)
-            elif extension in ['txt', 'py', 'c', 'cpp', 'sh']:
+            elif extension == ['pdf']:
+                return self.calculer_entropie_pdf(self.file)
+            elif extension in ['odt', 'txt', 'py', 'c', 'cpp', 'sh']:
                 return self.calculer_entropie_texte(self.file)
+            elif extension in ['docx']:
+                return self.calculer_entropie_docx(self.file)
             else:
-                return self._extracted_from_calc_entropie_16()
+                return self.calculer_entropie_binaire()
         except Exception as e:
             # print(f"Erreur lors du calcul de l'entropie pour {self.file} : {e}")
             return None
-
-    # TODO Rename this here and in `calc_entropie`
-    def _extracted_from_calc_entropie_16(self):
-        # Pour les autres extensions, utilisez l'implémentation existante
-        with open(self.file, 'rb') as f:
-            data = np.frombuffer(f.read(), dtype=np.uint8)
-        if not data.size:
-            return 0
-        counts = np.bincount(data)
-        return self._extracted_from_calculer_entropie_image_9(counts, data)
-        
-    # Méthode pour calculer l'entropie d'une image (JPEG, JPG, GIF)
+    
+    # Calcul d'entropie d'une image
     def calculer_entropie_image(self, fichier: str) -> float:
         try:
             image = Image.open(fichier)
-            image_data = np.array(image)
-            if image_data.size == 0:
-                return 0
-
-            counts = np.bincount(image_data.flatten())
-            return self._extracted_from_calculer_entropie_image_9(counts, image_data)
+            _, ext = os.path.splitext(fichier)
+            if ext.lower() != '.png':
+                image = image.convert('L')
+            data = np.array(image).flatten()
         except Exception as e:
-            print(f"Erreur lors du calcul de l'entropie pour le fichier d'image {fichier}: {str(e)}")
             return None
+        return self._calcul_entropie(data)
 
-    # TODO Rename this here and in `_extracted_from_calc_entropie_16` and `calculer_entropie_image`
-    def _extracted_from_calculer_entropie_image_9(self, counts, arg1):
-        probabilities = counts / arg1.size
-        probabilities[probabilities == 0] = 1e-10
-        return -np.sum(probabilities * np.log2(probabilities))
-
-    # Méthode pour calculer l'entropie d'un fichier PDF
+    # Calcul d'un fichier pdf
     def calculer_entropie_pdf(self, fichier: str) -> float:
         try:
-            pdf = PdfFileReader(fichier)
-            total_bytes = 0
-
-            # Parcours de chaque page du PDF
-            for page_num in range(pdf.numPages):
-                page = pdf.getPage(page_num)
-                content = page.extractText().encode('utf-8')
-                total_bytes += len(content)
-
-            # Calcul de l'entropie
-            counts = np.bincount(np.frombuffer(content, dtype=np.uint8))
-            probabilities = counts / total_bytes
-            probabilities[probabilities == 0] = 1e-10
-
-            return -np.sum(probabilities * np.log2(probabilities))
+            pdf = PdfReader(fichier)
+            content = b"".join(page.extract_text().encode('utf-8') for page in pdf.pages)
         except Exception as e:
-            print(f"Erreur lors du calcul de l'entropie pour le fichier PDF {fichier}: {str(e)}")
             return None
-        
-    # Méthode pour calculer l'entropie d'un fichier texte
+        return self._calcul_entropie(np.frombuffer(content, dtype=np.uint8))
+    
+    # Calcul d'entropie d'un fihcie DOCX
+    def calculer_entropie_docx(self, fichier: str) -> float:
+        try:
+            # Ouvrir le fichier comme un fichier zip
+            doc = Document(fichier)
+        except Exception as e:
+            return None
+        return self._calcul_entropie(doc)
+
+    # Calcul d'entropie d'un fichier texte ou un fichier codée
     def calculer_entropie_texte(self, fichier: str) -> float:
         try:
             with open(fichier, 'r') as f:
                 content = f.read().encode('utf-8')
-
-            counts = np.bincount(np.frombuffer(content, dtype=np.uint8))
-            probabilities = counts / len(content)
-            probabilities[probabilities == 0] = 1e-10
-
-            return -np.sum(probabilities * np.log2(probabilities))
         except Exception as e:
-            print(f"Erreur lors du calcul de l'entropie pour le fichier texte {fichier}: {str(e)}")
             return None
+        return self._calcul_entropie(np.frombuffer(content, dtype=np.uint8))
+        
+    # Calcul d'entropie d'un fichier binaire
+    def calculer_entropie_binaire(self, fichier: str) -> float:
+        try:
+            # Ouvrir le fichier en mode binaire
+            with open(fichier, 'rb') as f:
+                data = np.frombuffer(f.read(), dtype=np.uint8)
+        except Exception as e:
+            return None
+        return self._calcul_entropie(data)
     
+    # Méthode générique pour calculer l'entropie à partir des données
+    def _calcul_entropie(self, data):
+        if not data.size:
+            return 0
+        counts = np.bincount(data)
+        probabilities = counts / data.size
+        probabilities[probabilities == 0] = 1e-10
+        return -np.sum(probabilities * np.log2(probabilities))
     
     # Analyser la réputation des fichiers avec VirusTotal
     # - Méthode pour obtenir le hash du fichier
@@ -269,7 +273,7 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
         # envoyer les anomalies au serveur
         token = os.getenv("ACCESS_TOKEN")
         headers = {"Authorization": f"Bearer {token}"}
-        url = (os.getenv("SERVER_ADDRESS") or "default_value") + '/' + load_vars.get('VARS', 'CLIENT_ID') + '/machine/error'
+        url = (os.getenv("SERVER_ADDRESS") or "default_value") + '/' + get('VARS', 'CLIENT_ID') + '/machine/error'
 
         anomalies_envoyees = []
 
@@ -352,7 +356,7 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
         if not self.file:
             return False  # Ignorer si le fichier est vide
         entropie = self.calc_entropie()
-        if entropie is not None and entropie > 8:
+        if entropie is not None and entropie > 7:
             anomalies.append({
                 'type': 'ENTROPIE',
                 'path': str(pathlib.Path(file).resolve()),
@@ -443,8 +447,8 @@ def analyse() -> tuple[bool, str]:
         # Charger l'API VirusTotal du .env
         api_key = os.getenv("API_KEY_VIRUS_TOTAL") or "default_value"
 
-        extensions = [load_vars.get('FILES_EXTENSIONS', key) for key in load_vars.get_keys('FILES_EXTENSIONS')]
-        dossiers = [load_vars.get('DOSSIERS', key) for key in load_vars.get_keys('DOSSIERS')]
+        extensions = [get('FILES_EXTENSIONS', key) for key in get_keys('FILES_EXTENSIONS')]
+        dossiers = [get('DOSSIERS', key) for key in get_keys('DOSSIERS')]
 
         utilitaires = {}
         detections = {}
@@ -478,8 +482,8 @@ def analyse() -> tuple[bool, str]:
         # Charger l'API VirusTotal du .env
         api_key = os.getenv("API_KEY_VIRUS_TOTAL") or "default_value"
 
-        extensions = [load_vars.get('FILES_EXTENSIONS', key) for key in load_vars.get_keys('FILES_EXTENSIONS')]
-        dossiers = [load_vars.get('DOSSIERS', key) for key in load_vars.get_keys('DOSSIERS')]
+        extensions = [get('FILES_EXTENSIONS', key) for key in get_keys('FILES_EXTENSIONS')]
+        dossiers = [get('DOSSIERS', key) for key in get_keys('DOSSIERS')]
 
         utilitaires = {}
         detections = {}
