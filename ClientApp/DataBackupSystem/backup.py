@@ -57,8 +57,9 @@ def partial_backup(backup_dir):
             shutil.copytree(dossier_path, full_dossier_path)  # Copier le contenu du dossier dans le dernier backup
         # S'il existe
         else:
-            # Vérifier si les fichiers dans le dossier sont différents
-            if not filecmp.cmpfiles(dossier_path, full_dossier_path, shallow=False):
+            # Vérifier si les dossiers sont différents
+            common_files = os.listdir(dossier_path)
+            if not filecmp.cmpfiles(dossier_path, full_dossier_path, shallow=False, common=common_files):
                 # Mettre à jour les fichiers du dernier backup avec les nouveaux fichiers
                 shutil.rmtree(full_dossier_path)  # Supprimer le dossier existant
                 shutil.copytree(dossier_path, full_dossier_path)  # Copier les nouveaux fichiers vers le dernier backup
