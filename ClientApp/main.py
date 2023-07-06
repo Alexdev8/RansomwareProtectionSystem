@@ -35,6 +35,7 @@ def main():
     def main_backup():
         while True:
             if backup_authorization:
+                print("j'ai le droit de backup")
                 response = requests.get(os.environ.get("SERVER_ADDRESS"))
 
                 # Vérifier la réponse
@@ -57,8 +58,10 @@ def main():
 
                 else:
                     print("Error")
+            else:
+                print("pas le droit de backup")
             # wait 5 min
-            time.sleep(300)
+            time.sleep(60)
 
 
     analyse_thread = threading.Thread(target=main_analyse)
