@@ -18,3 +18,6 @@ RansomwareProtectionSystem.iml
 /WebApp/site/build/
 /WebApp/.env
 /venv/
+/build/
+/dist/
+RPS-client.spec

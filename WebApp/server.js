@@ -375,9 +375,11 @@ app.get('/api/client/:clientId/backup/push', getMachineID, checkMachineToken, (r
                 if (backupDate < Date.now()) {
                     console.log("yes");
                     if (now.getHours() === FULLBACKUP_TIME.getHours()) {
+                        //Full backup
                         res.send("Ouai, c'est Greg !");
                     }
                     else {
+                        //Partial backup
                         res.send("Ah ouai une petite frerot vasy");
                     }
                 }

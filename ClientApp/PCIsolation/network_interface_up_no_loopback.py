@@ -1,11 +1,11 @@
 import psutil
 import platform
-from ClientApp.PCIsolation.test_loopback import is_loopback
-from ClientApp.PCIsolation.test_loopback_mac import is_loopback_mac
-from ClientApp.PCIsolation.test_loopback_linux import is_loopback_linux
-from ClientApp.PCIsolation.interface_desactivation import disable_interfaces
-from ClientApp.PCIsolation.interface_desactivation_linux import disable_interfaces_linux
-from ClientApp.PCIsolation.interface_desactivation_mac import disable_interfaces_mac
+from ..PCIsolation.test_loopback import is_loopback
+from ..PCIsolation.test_loopback_mac import is_loopback_mac
+from ..PCIsolation.test_loopback_linux import is_loopback_linux
+from ..PCIsolation.interface_desactivation import disable_interfaces
+from ..PCIsolation.interface_desactivation_linux import disable_interfaces_linux
+from ..PCIsolation.interface_desactivation_mac import disable_interfaces_mac
 
 def get_network_interfaces():
     interfaces = []

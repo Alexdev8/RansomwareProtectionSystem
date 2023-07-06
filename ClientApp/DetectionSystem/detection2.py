@@ -10,14 +10,15 @@ import requests
 from dotenv import load_dotenv
 from hashlib import sha256
 
-from docx import Document
 from PyPDF2 import PdfReader
 from PIL import Image
 from cv2 import VideoCapture
 from py_compile import compile
 from time import sleep
 
-from .. import load_vars
+from ClientApp.load_vars import get, get_keys
+#sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+#from load_vars import get, get_keys
 from requests.exceptions import RequestException
 
 nb_anomalies = 0
@@ -137,7 +138,7 @@ class VerificationFichier:
             return True
 
         try:
-            if extension.lower() in ['odt', 'txt', 'csv', 'html', 'xml', 'c', 'cpp', 'java', 'php']:
+            if extension.lower() in ['docx', 'odt', 'txt', 'csv', 'html', 'xml', 'c', 'cpp', 'java', 'php']:
                 with open(self.file, 'rb') as f:
                     f.read(1)
             else:
@@ -161,10 +162,8 @@ class VerificationFichier:
                 return self.calculer_entropie_image(self.file)
             elif extension == ['pdf']:
                 return self.calculer_entropie_pdf(self.file)
-            elif extension in ['odt', 'txt', 'py', 'c', 'cpp', 'sh']:
+            elif extension in ['docx', 'odt', 'txt', 'py', 'c', 'cpp', 'sh']:
                 return self.calculer_entropie_texte(self.file)
-            elif extension in ['docx']:
-                return self.calculer_entropie_docx(self.file)
             else:
                 return self.calculer_entropie_binaire()
         except Exception as e:
@@ -191,15 +190,6 @@ class VerificationFichier:
         except Exception as e:
             return None
         return self._calcul_entropie(np.frombuffer(content, dtype=np.uint8))
-    
-    # Calcul d'entropie d'un fihcie DOCX
-    def calculer_entropie_docx(self, fichier: str) -> float:
-        try:
-            # Ouvrir le fichier comme un fichier zip
-            doc = Document(fichier)
-        except Exception as e:
-            return None
-        return self._calcul_entropie(doc)
 
     # Calcul d'entropie d'un fichier texte ou un fichier codée
     def calculer_entropie_texte(self, fichier: str) -> float:
@@ -271,7 +261,7 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
         # envoyer les anomalies au serveur
         token = os.getenv("ACCESS_TOKEN")
         headers = {"Authorization": f"Bearer {token}"}
-        url = (os.getenv("SERVER_ADDRESS") or "default_value") + '/' + load_vars.get('VARS', 'CLIENT_ID') + '/machine/error'
+        url = (os.getenv("SERVER_ADDRESS") or "default_value") + '/' + get('VARS', 'CLIENT_ID') + '/machine/error'
 
         anomalies_envoyees = []
 
@@ -445,8 +435,8 @@ def analyse() -> tuple[bool, str]:
         # Charger l'API VirusTotal du .env
         api_key = os.getenv("API_KEY_VIRUS_TOTAL") or "default_value"
 
-        extensions = [get('FILES_EXTENSIONS', key) for key in loadvars.get_keys('FILES_EXTENSIONS')]
-        dossiers = [get('DOSSIERS', key) for key in loadvars.get_keys('DOSSIERS')]
+        extensions = [get('FILES_EXTENSIONS', key) for key in get_keys('FILES_EXTENSIONS')]
+        dossiers = [get('DOSSIERS', key) for key in get_keys('DOSSIERS')]
 
         utilitaires = {}
         detections = {}
@@ -480,8 +470,8 @@ def analyse() -> tuple[bool, str]:
         # Charger l'API VirusTotal du .env
         api_key = os.getenv("API_KEY_VIRUS_TOTAL") or "default_value"
 
-        extensions = [get('FILES_EXTENSIONS', key) for key in loadvars.get_keys('FILES_EXTENSIONS')]
-        dossiers = [get('DOSSIERS', key) for key in loadvars.get_keys('DOSSIERS')]
+        extensions = [get('FILES_EXTENSIONS', key) for key in get_keys('FILES_EXTENSIONS')]
+        dossiers = [get('DOSSIERS', key) for key in get_keys('DOSSIERS')]
 
         utilitaires = {}
         detections = {}
