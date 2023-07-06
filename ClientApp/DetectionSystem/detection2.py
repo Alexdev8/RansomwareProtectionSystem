@@ -16,7 +16,7 @@ from cv2 import VideoCapture
 from py_compile import compile
 from time import sleep
 
-from ClientApp.load_vars import get, get_keys
+from ..load_vars import get, get_keys
 #sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 #from load_vars import get, get_keys
 from requests.exceptions import RequestException
@@ -462,40 +462,40 @@ def analyse() -> tuple[bool, str]:
         return False, str(e)
 
 
-def analyse() -> tuple[bool, str]:
-    global nb_anomalies
-    try:
-        nb_anomalies = 0
-        # Charger les variables d'environnement
-        # load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
-        load_dotenv('.env')
-
-        # Charger l'API VirusTotal du .env
-        api_key = os.getenv("API_KEY_VIRUS_TOTAL") or "default_value"
-
-        extensions = [get('FILES_EXTENSIONS', key) for key in get_keys('FILES_EXTENSIONS')]
-        dossiers = [get('DOSSIERS', key) for key in get_keys('DOSSIERS')]
-
-        utilitaires = {}
-        detections = {}
-
-        # Initialiser la base de données pour chaque dossier
-        for dossier in dossiers:
-            utilitaires[dossier] = Utilitaires(dossier, extensions, api_key)
-            detections[dossier] = RansomwareDetection(dossier, extensions, api_key)
-
-        for dossier, detection in detections.items():
-            if nb_anomalies != 0:
-                return True, ""
-            print(f"\nAnalyse du dossier : {dossier}\n")
-            result = detection.analyser_dossier_complet(dossier)
-            nb_anomalies += result or 0
-            print(f"Nombre de fichiers dangereux détectés dans le dossier {dossier} : {detection.fichiers_dangereux}")
-
-        return (True, "") if detection.fichiers_dangereux != 0 else (False, "")
-    
-    except Exception as e:
-        return False, str(e)
+# def analyse() -> tuple[bool, str]:
+#     global nb_anomalies
+#     try:
+#         nb_anomalies = 0
+#         # Charger les variables d'environnement
+#         # load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
+#         load_dotenv('.env')
+#
+#         # Charger l'API VirusTotal du .env
+#         api_key = os.getenv("API_KEY_VIRUS_TOTAL") or "default_value"
+#
+#         extensions = [get('FILES_EXTENSIONS', key) for key in get_keys('FILES_EXTENSIONS')]
+#         dossiers = [get('DOSSIERS', key) for key in get_keys('DOSSIERS')]
+#
+#         utilitaires = {}
+#         detections = {}
+#
+#         # Initialiser la base de données pour chaque dossier
+#         for dossier in dossiers:
+#             utilitaires[dossier] = Utilitaires(dossier, extensions, api_key)
+#             detections[dossier] = RansomwareDetection(dossier, extensions, api_key)
+#
+#         for dossier, detection in detections.items():
+#             if nb_anomalies != 0:
+#                 return True, ""
+#             print(f"\nAnalyse du dossier : {dossier}\n")
+#             result = detection.analyser_dossier_complet(dossier)
+#             nb_anomalies += result or 0
+#             print(f"Nombre de fichiers dangereux détectés dans le dossier {dossier} : {detection.fichiers_dangereux}")
+#
+#         return (True, "") if detection.fichiers_dangereux != 0 else (False, "")
+#
+#     except Exception as e:
+#         return False, str(e)
 
 
 def main():
