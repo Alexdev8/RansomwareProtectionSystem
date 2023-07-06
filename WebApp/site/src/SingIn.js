@@ -5,69 +5,18 @@ import axios from "axios";
 const emailData = [
     {
         id: "email",
-        title: "Email Address",
+        title: "Addresse mail",
         type: "email",
         example: "baker.justin@gmail.com"
     },
     {
         id: "email2",
         type: "email",
-        title: "Email Address Confirmation",
+        title: "Confirmation de l'addresse mail",
         example: "baker.justin@gmail.com"
     }
 ]
 
-const birthdateMonth = [
-
-    {
-        id: 0,
-        month: "January"
-    },
-    {
-        id: 1,
-        month: "February"
-    },
-    {
-        id: 2,
-        month: "March"
-    },
-    {
-        id: 3,
-        month: "April"
-    },
-    {
-        id: 4,
-        month: "May"
-    },
-    {
-        id: 5,
-        month: "June"
-    },
-    {
-        id: 6,
-        month: "July"
-    },
-    {
-        id: 7,
-        month: "August"
-    },
-    {
-        id: 8,
-        month: "September"
-    },
-    {
-        id: 9,
-        month: "October"
-    },
-    {
-        id: 10,
-        month: "November"
-    },
-    {
-        id: 11,
-        month: "December"
-    }
-]
 
 const nameData = [
     {
@@ -88,12 +37,12 @@ const password = [
     {
         id: "new-password",
         type: "password",
-        title: "Password",
+        title: "Mot de passe",
     },
     {
         id: "password2",
         type: "password",
-        title: "Password Confirmation",
+        title: "Confirmation du mot de passe",
     }
 ]
 
@@ -119,21 +68,21 @@ function AccountInformation({months, name, email}){
         if (checkData()) {
             axios({
                 method: 'post',
-                url: '/api/account/register',
+                url: '/api/client/register',
                 timeout: 4000, // 4 seconds timeout
                 data: {
                     firstName: normalizeInput(form.current["firstName"].value),
                     lastName: normalizeInput(form.current["lastName"].value),
-                    birthDate: getBirthDate(),
                     email: normalizeInput(form.current["email"].value),
                     password: form.current["new-password"].value,
-                    phoneNumber: (normalizeInput(form.current["phone-number"].value) !== "") ? normalizeInput(form.current["phone-number"].value): null,
-                    newsLetter: (form.current["newsletter-checkbox-input"].checked) ? 1: 0
+                    phone: (normalizeInput(form.current["phone-number"].value) !== "") ? normalizeInput(form.current["phone-number"].value): null,
+                    company: form.current["company-name"].value,
+                    subscription: form.current["subscription"].value
                 }
             })
                 .then(response => {
                     if (response.status === 201 && response.statusText === "Created") {
-                        navigate("../account/login", {replace: true});
+                        navigate("../dashboard", {replace: true});
                     }
                 })
                 .catch(error => {
@@ -177,13 +126,6 @@ function AccountInformation({months, name, email}){
             formValid = false;
         }
 
-        //Check for empty date
-        if (!matchRegex(/[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}/, getBirthDate())) {
-            console.log("error: invalid date");
-            setFormInputsValidity({...formInputsValidity, "date": false});
-            formValid = false;
-        }
-
         //Check for email validation
         if (!matchRegex(/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, normalizeInput(form.current["email"].value))) {
             console.log("error: invalid email");
@@ -219,68 +161,27 @@ function AccountInformation({months, name, email}){
             console.log("error: terms of services not agreed");
             formValid = false;
         }
-        if (!form.current["privacy-policy-checkbox-input"].checked) {
-            console.log("error: privacy policy not agreed");
-            formValid = false;
-        }
         return formValid;
     }
 
     return(
         <form className="content-section create-account-container" onSubmit={(e) => sendForm(e)} ref={form}>
-            <h1 className="create-account">Create Account</h1>
-            <h4 className="title-section">Birthdate</h4>
-            <div className="container-birthdate">
-                <div className="day-container">
-                    <label id="birthdate-title" htmlFor="birthdate-day">Day</label>
-                    <br/>
-                    <select name="birthdate-day" id="birthdate-day" className="data-selector">
-                        <option value="day">Select a day</option>
-                        {Array.from({length: 31}, (_,index) =>index + 1).map(day =>(
-                            <option className="birthdate-option" key={day} value={day}>{day}</option>
-                        )) }
-                    </select>
-                </div>
-                <div className="month-container">
-                    <label id="birthdate-title" htmlFor="birthdate-month">Month</label>
-                    <br/>
-                    <select name="birthdate-month" id="birthdate-month" className="data-selector">
-                        <option value="month">Select a month</option>
-                        {months.map((month) => (
-                            <option key={month.id} value={month.id + 1}>{month.month}</option>
-                        ))}
-                    </select>
-                </div>
-                <div className="year-container">
-                    <label id="birthdate-title" htmlFor="birthdate-year">Year</label>
-                    <br/>
-                    <select name="birthdate-year" id="birthdate-year" className="data-selector">
-                        <option value="year">Select a year</option>
-                        {Array.from({length: new Date().getFullYear() - 1949}, (_,i) => i + 1950).map((year) => (
-                            <option key={year} value={year}>{year}</option>
-                        ))}
-                    </select>
-                </div>
-            </div>
-            <hr/>
+            <h1 className="create-account">Créer un compte</h1>
             <h4 className="title-section">Your details</h4>
 
             <div className="container-personnel-data">
                 <div className="basic-personnel-data">
-                    <label htmlFor="title">Title</label>
-                    <br/>
-                    <select name="title" id="title" className="data-selector" autoComplete="honorific-prefix">
-                        <option value="title">Title</option>
-                        <option value="mr">Mr</option>
-                        <option value="mrs">Mrs</option>
-                        <option value="ms">Ms</option>
+                    <select name="subscription" id="subscription" className="data-selector" autoComplete="honorific-prefix">
+                        <option value="subscription">Abonnement</option>
+                        <option value="classique">Classique</option>
+                        <option value="prenium">Prenium</option>
                     </select>
                     <div className="name-container">
                         {name.map((name) => (
                             <div key={name.id} className="name-container-input">
                                 <label htmlFor={name.id}>{name.title}</label>
                                 <br/>
-                                <input name={name.id} id={name.id} type="text" className={((!formInputsValidity[name.id]) ? "invalid " : "") + "data-selector name-input"} maxLength="20" placeholder={"eg: " + name.example} aria-required={true}/>
+                                <input name={name.id} id={name.id} type="text" className={((!formInputsValidity[name.id]) ? "invalid " : "") + "data-selector name-input"} maxLength="20" placeholder={"ex: " + name.example} aria-required={true}/>
                             </div>
                         ))}
                     </div>
@@ -289,16 +190,23 @@ function AccountInformation({months, name, email}){
                             <div key={email.id} className="email-container-input">
                                 <label htmlFor={email.id}>{email.title}</label>
                                 <br/>
-                                <input type={email.type} id={email.id} className={((!formInputsValidity[email.id]) ? "invalid " : "") + "data-selector email-input"} maxLength="35" placeholder={"eg: " + email.example} name={email.id} autoComplete="username" aria-required={true}/>
+                                <input type={email.type} id={email.id} className={((!formInputsValidity[email.id]) ? "invalid " : "") + "data-selector email-input"} maxLength="35" placeholder={"ex: " + email.example} name={email.id} autoComplete="username" aria-required={true}/>
                             </div>
                         ))}
                         <div className="email-error"></div>
                     </div>
                     <div className="phone-container">
                         <div key={email.id} className="email-container-input">
-                            <label htmlFor="phone-number">Phone number</label>
+                            <label htmlFor="phone-number">numéro de téléphone</label>
                             <br/>
-                            <input type="tel" id="phone-number" className="data-selector email-input" maxLength="16" placeholder="eg: +33 6 34 17 39 43" name="phone-number" aria-required={true}/>
+                            <input type="tel" id="phone-number" className="data-selector email-input" maxLength="17" placeholder="ex: +33 6 34 17 39 43" name="phone-number" aria-required={true}/>
+                        </div>
+                    </div>
+                    <div className="company-name">
+                        <div key={email.id} className="company-container-input">
+                            <label htmlFor="company-name">Nom de votre entreprise</label>
+                            <br/>
+                            <input type="text" id="company-name" name="company-name" aria-required={true}/>
                         </div>
                     </div>
                 </div>
@@ -314,13 +222,11 @@ function AccountInformation({months, name, email}){
                 </div>
             </div>
             <div className="checkbox-container">
-
-                <label><input type="checkbox" id="newsletter-checkbox-input" name="newsletter-checkbox-input" className="checkbox-input"/>Subscribe to our newsletter</label>
-                <label aria-required={true}><input type="checkbox" id="terms-of-services-checkbox-input" name="terms-of-services-checkbox-input" className="checkbox-input"/>I accept the RoseCrown® <Link to={"../privacy-policy"}>terms of services</Link></label>
-                <label aria-required={true}><input type="checkbox" id="privacy-policy-checkbox-input" name="privacy-policy-checkbox-input" className="checkbox-input"/>I accept the RoseCrown® <Link to={"../privacy-policy"}>privacy policy</Link></label>
+                <label aria-required={true}><input type="checkbox" id="terms-of-services-checkbox-input" name="terms-of-services-checkbox-input" className="checkbox-input"/>J'accepte la <Link to={"../security-policy"}>politique de sécurité</Link> de RPS®</label>
             </div>
             <hr/>
-            <button className="button create-account">Create account</button>
+            <button className="button create-account">Créer un compte</button>
+            <button className="button create-account-login-button" onClick={() => navigate("../LogIn")}>Se connecter</button>
         </form>
     )
 }
@@ -347,7 +253,7 @@ function LogIn({originPath, user, setUser, setCookie}){
             setSubmitActivated(false);
             axios({
                 method: 'post',
-                url: '/api/account/login',
+                url: '/api/client/login',
                 timeout: 4000, // 4 seconds timeout
                 data: {
                     email: normalizeInput(form.current["email"].value),
@@ -359,7 +265,7 @@ function LogIn({originPath, user, setUser, setCookie}){
                         setUser({email: response.data});
                         setCookie("user", response.data, 2);
                         if (originPath.pathname !== "/account/login") {
-                            navigate(originPath, {replace: true});
+                            navigate("/dashboard", {replace: true});
                         }
                         else {
                             navigate("./", {replace: true});
@@ -368,10 +274,10 @@ function LogIn({originPath, user, setUser, setCookie}){
                 })
                 .catch(error => {
                     setSubmitting(false);
-                    if (error.response.status === 404) {
+                    if (error.status === 404) {
                         errorMessage.current.innerText = error.response.data;
                     }
-                    else if (error.response.status === 401 && error.response.statusText === "Unauthorized") {
+                    else if (error.status === 401 && error.statusText === "Unauthorized") {
                         errorMessage.current.innerText = error.response.data;
                     }
                     else {
@@ -395,16 +301,11 @@ function LogIn({originPath, user, setUser, setCookie}){
         return true;
     }
 
-    useEffect(() => {
-        if (user !== null) {
-            alert("You already are login");
-            navigate(-1);
-        }
-    }, [])
+
 
     return(
         <form className="content-section log-in" onSubmit={(e) => sendForm(e)} ref={form}>
-            <h1 className="log-in-account">Log In</h1>
+            <h1 className="log-in-account">Se connecter</h1>
             <div className="log-in-container">
                 <div className="log-in-item">
                     <label htmlFor="email">Email</label>
@@ -421,16 +322,16 @@ function LogIn({originPath, user, setUser, setCookie}){
             <div className="log-in-button-container">
                 <Link to="/account/signin">I forgot my password</Link>
                 <br/>
-                <button type="submit" className="button log-in-button" disabled={!submitActivated}>Log In</button>
+                <button type="submit" className="button log-in-button" disabled={!submitActivated}>Se connecter</button>
             </div>
-            <button className="button create-account-login-button" onClick={() => navigate("../account/signin")}>Create Account</button>
+            <button className="button create-account-login-button" onClick={() => navigate("../SingIn")}>Créer un compte</button>
         </form>
     )
 }
 
 function SignIn(){
     return(
-        <AccountInformation months={birthdateMonth} name={nameData} email={emailData}/>
+        <AccountInformation name={nameData} email={emailData}/>
     )
 }
 
