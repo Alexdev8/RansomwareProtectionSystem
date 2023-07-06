@@ -477,7 +477,7 @@ app.post('/api/client/:clientId/machine/register', checkSessionToken,  (req, res
         "VALUES (?, ?, ?, ?, ?)";
 
     refreshConnection();
-    connection.query(sql, [req.params.clientId, req.query.machineAddress, req.body.name, generateSecureKey(40)],(err, results, fields) => {
+    connection.query(sql, [req.params.clientId, req.body.machineAddress, req.body.name, generateSecureKey(40)],(err, results, fields) => {
         if (!err) {
             res.statusCode = 201;
             res.send(results);
@@ -541,12 +541,37 @@ app.get('/api/client/:clientId/machine/:machineId/backup', checkSessionToken,  (
 });
 
 app.patch('/api/client/:clientId/machine/update', checkSessionToken,  (req, res) => {
-    //add a new machine to a client account
+    //update a machine from a client account
 
     const sql="UPDATE `Machine` SET `machineAddress`=?, `name`=? WHERE `clientID`=? AND `machineID`=?";
 
     refreshConnection();
     connection.query(sql, [formatString(req.body.machineAddress), formatString(req.body.name), req.params.clientId, req.query.machineId],(err, results, fields) => {
+        if (!err) {
+            if (results.affectedRows !== 0) {
+                console.log('Machine updated');
+                res.statusCode = 201;
+                res.send(results);
+            }
+            else {
+                res.statusCode = 404;
+                console.log('No machine updated');
+            }
+        }
+        else {
+            res.sendStatus(404);
+            return console.error('error during query: ' + err.code);
+        }
+    });
+});
+
+app.patch('/api/client/:clientId/machine/state', checkSessionToken,  (req, res) => {
+    //change a machine state
+
+    const sql="UPDATE `Machine` SET `state`=? WHERE `clientID`=? AND `machineAddress`=?";
+
+    refreshConnection();
+    connection.query(sql, [req.body.state, req.params.clientId, req.query.machineAddress],(err, results, fields) => {
         if (!err) {
             if (results.affectedRows !== 0) {
                 console.log('Machine updated');
