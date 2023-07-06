@@ -1,7 +1,6 @@
 import React, {useState} from 'react';
 import {BrowserRouter, BrowserRouter as Router, Route, Routes} from 'react-router-dom';
 import HomePage from './guest/views/HomePage';
-import SecurityPolicy from './guest/views/SecurityPolicy';
 import Contact from './guest/views/Contact';
 import './App.css';
 import Dashboard from './client/dashboard';
@@ -55,7 +54,6 @@ export default function App() {
 
         <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/security-policy" element={<SecurityPolicy />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/dashboard" element={<Dashboard user={user}/>} />
           <Route path="/SingIn" element={<SignIn />} />
@@ -68,7 +66,7 @@ export default function App() {
               <li>&copy; 2023 Application Anti-Ransomware. Tous droits réservés.</li>
               <br />
               <li>
-                <a href="/security-policy">Politique de sécurité</a>
+              <a href="https://efrei365net-my.sharepoint.com/:w:/g/personal/michel_wu_efrei_net/Ea2Ac5G5aqxCnuMd5_BCcWIBgxwuyaKcYdBT_NL8pEpPlw?e=UHFq5n">Security Policy</a>
               </li>
               <br />
               <li>

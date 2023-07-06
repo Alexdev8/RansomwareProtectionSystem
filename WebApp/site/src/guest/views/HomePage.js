@@ -3,10 +3,6 @@ import NavBar from '../components/NavBar';
 import './HomePage.css';
 
 export default function HomePage() {
-    const downloadPdf = () => {
-        const element = document.getElementById('app');
-    };
-
     return (
         <div>
             <NavBar />
@@ -155,7 +151,7 @@ export default function HomePage() {
                         Ne laissez pas votre entreprise devenir la prochaine victime d'une attaque de
                         ransomware. <strong>Téléchargez RPS aujourd'hui</strong> et protégez votre entreprise contre les menaces en ligne.
                     </p>
-                    <button onClick={downloadPdf} className="download-button"><strong>Télécharger maintenant</strong></button>
+                    <button onClick="/SingIn" className="download-button"><strong>Se connecter</strong></button>
                 </section>
             </div>
         </div>
