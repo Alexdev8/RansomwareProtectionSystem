@@ -17,6 +17,7 @@ temp_path = os.getenv('TEMP')
 
 backup_authorization = False
 
+
 def main():
     def main_analyse():
         global backup_authorization
@@ -32,7 +33,6 @@ def main():
                 backup_authorization = True
 
             time.sleep(int(vars.get("VARS", "ANALYSE_FREQUENCY")))
-
 
     def main_backup():
         print("ca commence ici")
@@ -72,7 +72,6 @@ def main():
                 print("pas le droit de backup")
             # wait 5 min
             time.sleep(20)
-
 
     analyse_thread = threading.Thread(target=main_analyse)
     backup_thread = threading.Thread(target=main_backup)

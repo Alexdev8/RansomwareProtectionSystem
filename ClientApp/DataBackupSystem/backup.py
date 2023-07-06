@@ -43,8 +43,8 @@ def partial_backup(backup_dir):
     dossier_paths = get_values("DOSSIERS")
 
     if last_backup is None:
-        print("Erreur: Aucune sauvegarde n'a été trouvé ! Veuillez démarrer une sauvegarde complète de la machine ou "
-              "bien contactez votre administrateur.")
+        print("Erreur: Aucune sauvegarde n'a été trouvé ! Une sauvegarde complète va être initialisée")
+        full_backup(backup_dir)
         return
 
     # Comparer les fichiers du dernier backup avec les fichiers dans dossier_paths
