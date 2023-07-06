@@ -3,8 +3,9 @@ import {BrowserRouter, BrowserRouter as Router, Route, Routes} from 'react-route
 import HomePage from './guest/views/HomePage';
 import Contact from './guest/views/Contact';
 import './App.css';
-import Dashboard from './client/dashboard';
+import Dashboard from './client/dashbord2.js';
 import {LogIn, SignIn} from './SingIn.js';
+import ErrorList from "./client/errorList";
 
 
 function setCookie(cname, cvalue, exdays) {
@@ -58,6 +59,7 @@ export default function App() {
           <Route path="/dashboard" element={<Dashboard user={user}/>} />
           <Route path="/SingIn" element={<SignIn />} />
           <Route path="/LogIn" element={<LogIn originPath={prevLocation} user={user} setUser={setUser} setCookie={setCookie}/>} />
+          <Route path="/error" element={<ErrorList user={user} />} />
         </Routes>
 
         <footer>

@@ -6,7 +6,7 @@ export default function Dashboard(prop) {
     const [computers, setComputers] = useState([]);
     const [showForm, setShowForm] = useState(false);
     const [computerName, setComputerName] = useState('');
-    const [computerSerie, setComputerSerie] = useState('');
+    const [computerMac, setComputerMac] = useState('');
     console.log(prop.user);
     console.log(prop.user.clientID);
     console.log(prop.user.connectionToken);
@@ -17,7 +17,7 @@ export default function Dashboard(prop) {
     const handleFormSubmit = (e) => {
         e.preventDefault();
         const newComputer = {
-            nserie: computerSerie,
+            mac: computerMac,
             name: computerName,
             state: 'Sain',
         };
@@ -47,8 +47,8 @@ export default function Dashboard(prop) {
             <button onClick={handleAddComputer}>Ajouter un ordinateur</button>
             {showForm && (
                 <form onSubmit={handleFormSubmit}>
-                    <label>N° série:</label>
-                    <input type="text" value={computerSerie} onChange={(e) => setComputerSerie(e.target.value)} />
+                    <label>Adresse MAC :</label>
+                    <input type="text" value={computerMac} onChange={(e) => setComputerMac(e.target.value)} />
                     <label>Nom :</label>
                     <input type="text" value={computerName} onChange={(e) => setComputerName(e.target.value)} />
                     <button type="submit">Ajouter</button>
@@ -66,7 +66,7 @@ export default function Dashboard(prop) {
                 <tbody>
                 {computers.map((computer, index) => (
                     <tr key={index}>
-                        <td>{computer.nserie}</td>
+                        <td>{computer.mac}</td>
                         <td>{computer.name}</td>
                         <td>{computer.state}</td>
                         <td>
