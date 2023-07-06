@@ -21,42 +21,43 @@ def main():
             result = analyse()
             if result[0]:
                 # Une erreur a été détecté
-                backup_authorization = Falsemessage_erreur(desactivation_interfaces(), result[1])
+                backup_authorization = False
+                message_erreur(desactivation_interfaces(), result[1])
             else:
                 # if sys.argv[1:] and sys.argv[1] == "backup":
                 print("Backup autorisé")
-            backup_authorization = True
+                backup_authorization = True
 
             time.sleep(int(vars.get("VARS", "ANALYSE_FREQUENCY")))
 
 
-def main_backup():
-    while True:
-        if backup_authorization:
-            response = requests.get(os.environ.get("SERVER_ADDRESS"))
+    def main_backup():
+        while True:
+            if backup_authorization:
+                response = requests.get(os.environ.get("SERVER_ADDRESS"))
 
-            # Vérifier la réponse
-            if response.text == "Ouai, c'est Greg !":
+                # Vérifier la réponse
+                if response.text == "Ouai, c'est Greg !":
 
-                full_backup(temp_path)
-                send_directory_files(get_last_backup(temp_path),
-                                     os.environ.get("SERVER_ADDRESS") + '/' + vars.get('VARS',
-                                                                                       'CLIENT_ID') + '/backup/push')
+                    full_backup(temp_path)
+                    send_directory_files(get_last_backup(temp_path),
+                                         os.environ.get("SERVER_ADDRESS") + '/' + vars.get('VARS',
+                                                                                           'CLIENT_ID') + '/backup/push')
 
-            elif response.text == "Ah ouai une petite frerot vasy":
+                elif response.text == "Ah ouai une petite frerot vasy":
 
-                partial_backup(temp_path)
-                send_directory_files(get_last_backup(temp_path),
-                                     os.environ.get("SERVER_ADDRESS") + '/' + vars.get('VARS',
-                                                                                       'CLIENT_ID') + '/backup/push')
+                    partial_backup(temp_path)
+                    send_directory_files(get_last_backup(temp_path),
+                                         os.environ.get("SERVER_ADDRESS") + '/' + vars.get('VARS',
+                                                                                           'CLIENT_ID') + '/backup/push')
 
-            elif response.text == "Tié zinzin frate":
-                print("Aucune backup n'est nécessaire pour le moment")
+                elif response.text == "Tié zinzin frate":
+                    print("Aucune backup n'est nécessaire pour le moment")
 
-            else:
-                print("Error")
-        # wait 5 min
-        time.sleep(300)
+                else:
+                    print("Error")
+            # wait 5 min
+            time.sleep(300)
 
 
     analyse_thread = threading.Thread(target=main_analyse)
