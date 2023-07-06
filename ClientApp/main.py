@@ -17,6 +17,7 @@ backup_authorization = False
 
 def main():
     def main_analyse():
+        global backup_authorization
         while True:
             result = analyse()
             if result[0]:
