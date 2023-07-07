@@ -57,7 +57,7 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/dashboard" element={<Dashboard user={user}/>} />
-          <Route path="/SingIn" element={<SignIn />} />
+          <Route path="/SignIn" element={<SignIn />} />
           <Route path="/LogIn" element={<LogIn originPath={prevLocation} user={user} setUser={setUser} setCookie={setCookie}/>} />
           <Route path="/error" element={<ErrorList user={user} />} />
         </Routes>
@@ -68,7 +68,7 @@ export default function App() {
               <li>&copy; 2023 HackFactorizzz, ® RPS. Tous droits réservés.</li>
               <br />
               <li>
-              <a href="Politique_Securite_HackFactorizz_APP_RPS_06072023.pdf">Security Policy</a>
+              <a href="./Politique_Securite_HackFactorizz_APP_RPS_06072023.pdf" download>Security Policy</a>
               </li>
               <br />
               <li>

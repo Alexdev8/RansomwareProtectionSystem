@@ -14,7 +14,7 @@ export default function NavBar() {
         <a href="#advantages">Bénéfices</a>
         <a href="#automation">Automatisation</a>
         <a href="#download">Télécharger</a>
-        <Link to="/SingIn">S'inscrire</Link>
+        <Link to="/SignIn">S'inscrire</Link>
         <Link to="/LogIn">Se connecter</Link>
     </div>
   );
