@@ -76,7 +76,7 @@ def send_directory_files(directory, url):
     shutil.make_archive(base_name, 'zip', directory)
 
     # Envoyer l'archive via sendfile
-    with open(directory, 'rb') as f:
+    with open(archive_name, 'rb') as f:
         files = {'files': (archive_name, f, 'application/zip')}
         response = requests.post(url, params={"machineAddress": ':'.join(re.findall('..', '%012x' % uuid.getnode())),
                                               "date": datetime.datetime.now()}, files=files,
