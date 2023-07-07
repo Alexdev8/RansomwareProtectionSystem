@@ -1,5 +1,5 @@
 import {Link, useNavigate} from "react-router-dom";
-import {useEffect, useRef, useState} from "react";
+import React, {useEffect, useRef, useState} from "react";
 import axios from "axios";
 
 const emailData = [
@@ -219,7 +219,7 @@ function AccountInformation({name, email}){
                 </div>
             </div>
             <div className="checkbox-container">
-                <label aria-required={true}><input type="checkbox" id="terms-of-services-checkbox-input" name="terms-of-services-checkbox-input" className="checkbox-input"/>J'accepte la <Link to={"../security-policy"}>politique de sécurité</Link> de RPS®</label>
+                <label aria-required={true}><input type="checkbox" id="terms-of-services-checkbox-input" name="terms-of-services-checkbox-input" className="checkbox-input"/>J'accepte la <a href="Politique_Securite_HackFactorizz_APP_RPS_06072023.pdf">politique de sécurité</a> de RPS®</label>
             </div>
             <hr/>
             <button className="button create-account">Créer un compte</button>

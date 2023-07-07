@@ -3,7 +3,7 @@ import {BrowserRouter, BrowserRouter as Router, Route, Routes} from 'react-route
 import HomePage from './guest/views/HomePage';
 import Contact from './guest/views/Contact';
 import './App.css';
-import Dashboard from './client/dashbord2.js';
+import Dashboard from './client/dashboard.js';
 import {LogIn, SignIn} from './SignIn.js';
 import ErrorList from "./client/errorList";
 
