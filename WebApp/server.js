@@ -566,10 +566,10 @@ app.patch('/api/client/:clientId/machine/update', checkSessionToken,  (req, res)
 app.patch('/api/client/:clientId/machine/state', checkSessionToken,  (req, res) => {
     //change a machine state
 
-    const sql="UPDATE `Machine` SET `state`=? WHERE `clientID`=? AND `machineAddress`=?";
+    const sql="UPDATE `Machine` SET `state`=? WHERE `clientID`=? AND `machineID`=?";
 
     refreshConnection();
-    connection.query(sql, [req.body.state, req.params.clientId, req.query.machineAddress],(err, results, fields) => {
+    connection.query(sql, [req.body.state, req.params.clientId, req.query.machineId],(err, results, fields) => {
         if (!err) {
             if (results.affectedRows !== 0) {
                 console.log('Machine updated');
