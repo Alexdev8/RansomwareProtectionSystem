@@ -261,9 +261,11 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
         # envoyer les anomalies au serveur
         token = os.getenv("ACCESS_TOKEN")
         headers = {"Authorization": f"Bearer {token}"}
-        url = os.getenv("SERVER_ADDRESS") + '/' + get('VARS', 'CLIENT_ID') + '/machine/error'
+        url_error = os.getenv("SERVER_ADDRESS") + '/' + get('VARS', 'CLIENT_ID') + '/machine/error'
+        url_state = os.getenv("SERVER_ADDRESS") + '/' + get('VARS', 'CLIENT_ID') + '/machine/state'
 
         anomalies_envoyees = []
+        state_changed = False
 
         for anomalie in anomalies:
             if anomalie in anomalies_envoyees:
@@ -284,15 +286,28 @@ class RansomwareDetection(Utilitaires, VerificationFichier):
             # Vérifier la réponse
             for _ in range(3):  # Effectuer jusqu'à 3 tentatives
                 try:
-                    response = requests.post(url, params=params, data=error_data, headers=headers)
+                    response = requests.post(url_error, params=params, data=error_data, headers=headers)
                     response.raise_for_status()
                     if response.status_code == 201:
                         print(f"Anomalie pour {anomalie['path']} a été envoyée avec succès.")
                         anomalies_envoyees.append(anomalie)
+                        
+                        if not state_changed:
+                            state_data = {
+                                'state': 0, 
+                            }
+                            state_response = requests.patch(url_state, params=params, data=state_data, headers=headers)
+                            state_response.raise_for_status()
+                            if state_response.status_code == 201:
+                                print("L'état de la machine a été modifié avec succès.")
+                                state_changed = True
+                
                         break 
+                    
                     else:
                         print(f"Une erreur s'est produite pour {anomalie['path']}: {response.text}")
                         sleep(2)
+                        
                 except RequestException as e:
                     print(f"Erreur de connexion lors de l'envoi des anomalies : {str(e)}")
                     sleep(2)
