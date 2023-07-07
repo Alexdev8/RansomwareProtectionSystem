@@ -151,7 +151,6 @@ export default function HomePage() {
                         Ne laissez pas votre entreprise devenir la prochaine victime d'une attaque de
                         ransomware. <strong>Téléchargez RPS aujourd'hui</strong> et protégez votre entreprise contre les menaces en ligne.
                     </p>
-                    <button onClick="/SingIn" className="download-button"><strong>Se connecter</strong></button>
                 </section>
             </div>
         </div>
