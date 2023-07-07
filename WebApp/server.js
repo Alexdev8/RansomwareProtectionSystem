@@ -383,7 +383,6 @@ app.get('/api/client/:clientId/backup/push', getMachineID, checkMachineToken, (r
                     }
                 }
                 else {
-                    console.log("no");
                     res.send("Tié zinzin frate");
                 }
             }
@@ -409,7 +408,6 @@ app.post('/api/client/:clientId/backup/push', getMachineID, checkMachineToken, c
         return res.status(400).send("Aucun fichier n'a été reçu.");
     }
 
-    console.log(req.files);
     // Réponse
     let clientID = req.params.clientId;
     let machineAddress = req.query.machineAddress;

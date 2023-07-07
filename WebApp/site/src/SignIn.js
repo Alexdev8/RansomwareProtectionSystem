@@ -54,14 +54,11 @@ function matchRegex(regex, string) {
     return regex.test(string);
 }
 
-function AccountInformation({months, name, email}){
+function AccountInformation({name, email}){
     const navigate = useNavigate();
 
     const form = useRef(null);
-    const [formInputsValidity, setFormInputsValidity] = useState({"firstName": true, "lastName": true, "date": true, "email": true, "email2": true, "phone-number": true, "new-password": true, "password2": true});
-    function getBirthDate() {
-        return form.current["birthdate-year"].value + '-' + form.current["birthdate-month"].value + '-' + form.current["birthdate-day"].value;
-    }
+    const [formInputsValidity, setFormInputsValidity] = useState({"firstName": true, "lastName": true, "email": true, "email2": true, "phone-number": true, "new-password": true, "password2": true});
 
     function sendForm(e) {
         e.preventDefault();
@@ -76,7 +73,7 @@ function AccountInformation({months, name, email}){
                     email: normalizeInput(form.current["email"].value),
                     password: form.current["new-password"].value,
                     phone: (normalizeInput(form.current["phone-number"].value) !== "") ? normalizeInput(form.current["phone-number"].value): null,
-                    company: form.current["company-name"].value,
+                    company: normalizeInput(form.current["company-name"].value),
                     subscription: form.current["subscription"].value
                 }
             })
@@ -226,7 +223,6 @@ function AccountInformation({months, name, email}){
             </div>
             <hr/>
             <button className="button create-account">Créer un compte</button>
-            <button className="button create-account-login-button" onClick={() => navigate("../LogIn")}>Se connecter</button>
         </form>
     )
 }

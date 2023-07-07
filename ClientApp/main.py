@@ -13,7 +13,7 @@ from . import load_vars as vars
 from dotenv import load_dotenv
 
 load_dotenv('.env')
-temp_path = os.getenv('TEMP')
+temp_path = os.getenv('BACKUP_TEMP_PATH')
 
 backup_authorization = False
 
@@ -29,13 +29,11 @@ def main():
                 message_erreur(desactivation_interfaces(), result[1])
             else:
                 # if sys.argv[1:] and sys.argv[1] == "backup":
-                print("Backup autorisé")
                 backup_authorization = True
 
             time.sleep(int(vars.get("VARS", "ANALYSE_FREQUENCY")))
 
     def main_backup():
-        print("ca commence ici")
         while True:
             if backup_authorization:
                 headers = {"Authorization": f"Bearer {os.getenv('ACCESS_TOKEN')}"}
@@ -44,9 +42,7 @@ def main():
                     "machineAddress": ':'.join(re.findall('..', '%012x' % uuid.getnode()))
                 }
 
-                print("j'ai le droit de backup")
                 response = requests.get(url, headers=headers, params=params)
-                print(response.text)
 
                 # Vérifier la réponse
                 if response.text == "Ouai, c'est Greg !":
@@ -68,10 +64,8 @@ def main():
 
                 else:
                     print("Error")
-            else:
-                print("pas le droit de backup")
             # wait 5 min
-            time.sleep(20)
+            time.sleep(300)
 
     analyse_thread = threading.Thread(target=main_analyse)
     backup_thread = threading.Thread(target=main_backup)

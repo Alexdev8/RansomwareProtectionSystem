@@ -66,14 +66,11 @@ def partial_backup(backup_dir):
 
     print(f"Sauvegarde partielle effectuée : {backup_dir}")
 
-
-
 def send_directory_files(directory, url):
     # Créer une archive du répertoire
-    base_name = os.path.basename(directory)
     timestamp = datetime.datetime.now().strftime("%d%m%Y%H%M%S")
-    archive_name = f"{base_name + timestamp}.zip"
-    shutil.make_archive(base_name, 'zip', directory)
+    archive_name = f"{directory + timestamp}.zip"
+    shutil.make_archive(directory + timestamp, 'zip', directory)
 
     # Envoyer l'archive via sendfile
     with open(archive_name, 'rb') as f:
@@ -88,5 +85,4 @@ def send_directory_files(directory, url):
         else:
             print("Une erreur est survenue lors de l'envoi !")
             print("Raison : " + response.text)
-
-
+    os.remove(archive_name)

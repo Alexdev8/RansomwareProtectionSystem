@@ -4,7 +4,7 @@ import HomePage from './guest/views/HomePage';
 import Contact from './guest/views/Contact';
 import './App.css';
 import Dashboard from './client/dashbord2.js';
-import {LogIn, SignIn} from './SingIn.js';
+import {LogIn, SignIn} from './SignIn.js';
 import ErrorList from "./client/errorList";
 
 
@@ -65,10 +65,10 @@ export default function App() {
         <footer>
           <div className="footerbar">
             <ul>
-              <li>&copy; 2023 Application Anti-Ransomware. Tous droits réservés.</li>
+              <li>&copy; 2023 HackFactorizzz, ® RPS. Tous droits réservés.</li>
               <br />
               <li>
-              <a href="https://efrei365net-my.sharepoint.com/:w:/g/personal/michel_wu_efrei_net/Ea2Ac5G5aqxCnuMd5_BCcWIBgxwuyaKcYdBT_NL8pEpPlw?e=UHFq5n">Security Policy</a>
+              <a href="Politique_Securite_HackFactorizz_APP_RPS_06072023.pdf">Security Policy</a>
               </li>
               <br />
               <li>

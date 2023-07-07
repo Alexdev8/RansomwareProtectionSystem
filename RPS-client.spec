@@ -8,7 +8,13 @@ a = Analysis(
     ['cli.py'],
     pathex=[],
     binaries=[],
-    datas=[('ClientApp/config.ini', '.'), ('README.md', '.'), ('ClientApp/PopUp/RPS.png', '.'), ('ClientApp/.env', '.')],
+    datas=[
+        ('ClientApp/config.ini', '.'),
+        ('README.md', '.'),
+        ('ClientApp/PopUp/RPS.png', '.'),
+        ('ClientApp/.env', '.'),
+        ('ClientApp/temp', 'temp')
+    ],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -28,7 +34,7 @@ exe = EXE(
     exclude_binaries=True,
     name='RPS-client',
     icon='RPS.ico',
-    debug=True,
+    debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
